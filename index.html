@@ -1,0 +1,1850 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0d0e10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="REBUILD">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+<title>REBUILD Recomp Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#0d0e10; --bg2:#15171a; --bg3:#1e2125; --line:#2b2e34;
+  --txt:#ffffff; --txt2:#e3e4e8; --txt3:#c4c6cd;
+  --accent:#2dd6c1; --accent-dim:#1b8478;
+  --protein:#7fece0; --carbs:#3fc0b2; --fat:#1f8c80; --cals:#2dd6c1;
+  --danger:#9396a0; --ok:#2dd6c1;
+  --ontag:#101510; --shadow:rgba(0,0,0,.45); --overlay:rgba(0,0,0,.66);
+  --r:12px; --r-sm:8px;
+}
+html.light{
+  --bg:#f4f6f8; --bg2:#ffffff; --bg3:#eceef1; --line:#dde0e6;
+  --txt:#15171c; --txt2:#3a3e46; --txt3:#6c707a;
+  --accent:#0d9488; --accent-dim:#5eccc0;
+  --protein:#0d9488; --carbs:#0f766e; --fat:#115e59; --cals:#0d9488;
+  --danger:#8a8e98; --ok:#0d9488;
+  --ontag:#ffffff; --shadow:rgba(15,30,40,.16); --overlay:rgba(20,26,32,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:var(--txt);font-family:'Archivo',sans-serif;}
+body{max-width:760px;margin:0 auto;padding:0 16px 120px;}
+h1,h2,h3,.disp{font-family:'Oswald',sans-serif;letter-spacing:.02em;}
+::-webkit-scrollbar{width:0;height:0;}
+textarea::-webkit-scrollbar{width:5px;}
+textarea::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+header{padding:22px 2px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+.brand h1{font-size:30px;font-weight:700;line-height:1;text-transform:uppercase;}
+.brand h1 span{color:var(--accent);}
+.brand p{font-size:12px;color:var(--txt3);margin-top:4px;letter-spacing:.03em;}
+.savechip{font-size:10.5px;color:var(--txt3);display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:500;}
+.headright{display:flex;flex-direction:column;align-items:flex-end;gap:9px;}
+.hbtns{display:flex;gap:7px;}
+.themebtn{background:var(--bg2);border:1px solid var(--line);color:var(--txt2);font-size:15px;line-height:1;padding:6px 10px;border-radius:var(--r-sm);cursor:pointer;transition:.15s;}
+.themebtn:active{transform:scale(.94);}
+#syncbtn.spin{color:var(--accent);border-color:var(--accent);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){#syncbtn.spin{animation:none;}}
+.syncbig{display:flex;align-items:center;gap:10px;margin-top:2px;}
+.syncbig .btn-primary{flex:1;}
+.syncstate{font-size:11.5px;color:var(--txt3);margin-top:9px;line-height:1.5;}
+.syncstate b{color:var(--txt2);font-weight:600;}
+.syncstate .on{color:var(--accent);}
+.syncstate .off{color:var(--func);}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent);transition:.3s;}
+.dot.saving{background:var(--txt3);}
+.tabs{display:flex;gap:4px;background:var(--bg2);padding:5px;border-radius:var(--r);margin-bottom:18px;border:1px solid var(--line);}
+.tab{flex:1;padding:11px 2px;border:none;background:transparent;color:var(--txt3);font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;border-radius:var(--r-sm);cursor:pointer;transition:.18s;}
+.tab.active{background:var(--accent);color:var(--ontag);}
+.view{display:none;animation:fade .35s ease;}
+.view.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.weeks{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px;margin-bottom:14px;}
+.wpill{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 4px 8px;cursor:pointer;text-align:center;transition:.16s;border-top-width:3px;}
+.wpill:active{transform:scale(.96);}
+.wpill .wn{font-family:'Oswald',sans-serif;font-size:11px;color:var(--txt3);text-transform:uppercase;font-weight:600;}
+.wpill .wl{font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:var(--txt);margin-top:1px;}
+.wpill.active{background:var(--bg3);border-color:var(--accent);}
+.wpill .wp{display:flex;gap:2px;justify-content:center;margin-top:5px;flex-wrap:wrap;}
+.wp i{width:5px;height:5px;border-radius:50%;background:var(--line);font-style:normal;}
+.wp i.on{background:var(--accent);}
+.phase-banner{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-left-width:3px;border-radius:var(--r-sm);padding:11px 14px;margin-bottom:14px;}
+.phase-banner .pt{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;text-transform:uppercase;}
+.phase-banner .pd{font-size:11.5px;color:var(--txt3);margin-left:auto;text-align:right;}
+.wkprog{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.wkprog .bar{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.wkprog .fill{height:100%;background:var(--accent);border-radius:4px;transition:.4s;}
+.wkprog .lbl{font-size:11.5px;color:var(--txt3);font-weight:600;white-space:nowrap;}
+.day{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);margin-bottom:9px;overflow:hidden;}
+.day-head{display:flex;align-items:center;gap:11px;padding:13px 14px;cursor:pointer;}
+.daytag{font-family:'Oswald',sans-serif;font-size:11px;font-weight:700;color:var(--ontag);background:var(--txt3);padding:3px 7px;border-radius:5px;text-transform:uppercase;min-width:42px;text-align:center;}
+.daytag.lift{background:var(--txt);}
+.daytag.cardio{background:#7c7f89;}
+.daytag.done{background:var(--accent);}
+.daymeta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.day-title{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;line-height:1.15;}
+.day-date{font-size:10.5px;color:var(--txt3);font-weight:600;letter-spacing:.02em;}
+.day.today{border-color:var(--accent);}
+.day.today .day-date{color:var(--accent);}
+.day-sub{font-size:11px;color:var(--txt3);white-space:nowrap;}
+.exsug{display:flex;align-items:flex-start;gap:7px;background:rgba(45,214,193,.08);border:1px solid var(--accent-dim);border-radius:var(--r-sm);padding:7px 10px;margin:0 0 9px;font-size:12px;color:var(--txt2);line-height:1.4;}
+.exsug .sgico{color:var(--accent);font-weight:700;flex-shrink:0;}
+.exsug .sgtxt b{color:var(--txt);font-weight:600;}
+.exsug .sgnote{color:var(--txt3);font-weight:500;}
+.chev{color:var(--txt3);font-size:13px;transition:.25s;font-style:normal;}
+.chev.open{transform:rotate(180deg);}
+.day-body{display:none;padding:2px 14px 14px;}
+.day-body.open{display:block;}
+.exblock{padding:12px 0 10px;border-top:1px solid var(--line);position:relative;}
+.exhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.exhead .exn{font-size:13.5px;font-weight:600;line-height:1.25;}
+.exhead .exright{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.exhead .extarget{font-size:10.5px;color:var(--txt3);white-space:nowrap;}
+.kebab{background:transparent;border:none;color:var(--txt3);font-size:18px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px;font-family:'Archivo',sans-serif;}
+.kebab:active{background:var(--bg3);color:var(--txt);}
+.exmenu{display:none;position:absolute;top:34px;right:0;z-index:30;background:var(--bg3);border:1px solid var(--line);border-radius:var(--r-sm);padding:5px;min-width:184px;box-shadow:0 8px 24px var(--shadow);}
+.exmenu.open{display:block;animation:fade .15s ease;}
+.exmenu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--txt2);font-family:'Archivo',sans-serif;font-size:13px;font-weight:500;padding:9px 10px;border-radius:6px;cursor:pointer;}
+.exmenu button:active{background:var(--bg2);}
+.exmenu button.danger{color:#ff6b6b;}
+.setrow.skipped .setin{opacity:.45;text-decoration:line-through;border-style:dashed;}
+.setrow.skipped .setnum{color:var(--txt3);text-decoration:line-through;}
+.chk.skip{background:var(--bg3);border-color:var(--line);border-style:dashed;color:var(--txt3);}
+.addexwrap{padding:12px 0 2px;border-top:1px solid var(--line);margin-top:4px;}
+.addex-btn{margin:0;}
+.addexform{display:none;margin-top:10px;}
+.addexform.open{display:block;}
+.addexform .finput{margin-bottom:8px;}
+.fst{display:inline-block;background:rgba(45,214,193,.15);color:var(--accent);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;letter-spacing:.03em;margin-left:4px;vertical-align:1px;}
+.setcols{display:grid;grid-template-columns:26px 1fr 1fr .9fr 34px;gap:6px;padding:0 0 5px;}
+.setcols span{font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em;font-weight:700;text-align:center;}
+.setrow{display:grid;grid-template-columns:26px 1fr 1fr .9fr 34px;gap:6px;align-items:center;margin-bottom:5px;position:relative;}
+.setin{padding-left:4px;padding-right:4px;}
+.setnum{cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;border-radius:6px;padding:2px 0;}
+.setnum:active{background:var(--bg3);}
+.setnum .snn{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--txt3);}
+.setrow.done .setnum .snn{color:var(--accent);}
+.setnum .stype{font-size:7.5px;font-weight:700;color:var(--accent);letter-spacing:.02em;margin-top:1px;}
+.setmenu{display:none;position:absolute;top:32px;left:0;z-index:40;background:var(--bg3);border:1px solid var(--line);border-radius:var(--r-sm);padding:5px;min-width:188px;box-shadow:0 8px 24px var(--shadow);}
+.setmenu.open{display:block;animation:fade .15s ease;}
+.setmenu .smsec{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--txt3);padding:7px 10px 4px;}
+.setmenu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--txt2);font-family:'Archivo',sans-serif;font-size:13px;font-weight:500;padding:8px 10px 8px 24px;border-radius:6px;cursor:pointer;position:relative;}
+.setmenu button:active{background:var(--bg2);}
+.setmenu button.danger{color:#ff6b6b;}
+.setmenu button.active{color:var(--accent);}
+.setmenu button.active::before{content:'✓';position:absolute;left:8px;font-size:11px;}
+.exnote{display:flex;align-items:center;gap:8px;background:rgba(45,214,193,.08);border:1px solid var(--accent-dim);border-radius:var(--r-sm);padding:8px 11px;margin:0 0 9px;font-size:12.5px;color:var(--txt2);line-height:1.4;}
+.exnote .pin{color:var(--accent);font-size:12px;flex-shrink:0;}
+.exnote .ntxt{flex:1;white-space:pre-wrap;}
+.modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:100;align-items:center;justify-content:center;padding:18px;}
+.modal-overlay.open{display:flex;animation:fade .2s ease;}
+.modal{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);width:100%;max-width:440px;padding:20px;}
+.modal .mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:2px;}
+.modal h3{font-size:21px;font-weight:600;text-transform:none;}
+.modal .msub{font-size:12.5px;color:var(--txt3);margin-bottom:14px;}
+.modal .mclose{background:transparent;border:none;color:var(--txt3);font-size:20px;cursor:pointer;line-height:1;padding:0 2px;}
+.modal textarea{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:12px;font-family:'Archivo',sans-serif;font-size:14px;line-height:1.5;resize:vertical;min-height:120px;}
+.modal textarea:focus{outline:none;border-color:var(--accent);}
+.pinrow{display:flex;align-items:center;gap:10px;margin:14px 0 18px;cursor:pointer;user-select:none;}
+.pinrow .pinlabel{font-size:13px;font-weight:600;color:var(--txt2);}
+.modal-btns{display:flex;align-items:center;gap:10px;}
+.modal-btns .spacer{flex:1;}
+.btn-danger-text{background:transparent;border:none;color:#ff6b6b;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Archivo',sans-serif;padding:6px 2px;}
+.setnum{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--txt3);text-align:center;}
+.setrow.done .setnum{color:var(--accent);}
+.setin{background:var(--bg3);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:9px 6px;font-size:13px;font-family:'Archivo',sans-serif;width:100%;text-align:center;}
+.setin::placeholder{color:var(--txt3);}
+.setin:focus{outline:none;border-color:var(--accent);}
+.setrow.done .setin{border-color:var(--accent-dim);}
+.chk{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s;color:transparent;font-size:15px;}
+.chk.on{background:var(--accent);border-color:var(--accent);color:var(--ontag);}
+.chk:active{transform:scale(.9);}
+.chk.sm{width:36px;height:36px;font-size:14px;border-radius:8px;}
+.setctl{display:flex;gap:6px;margin-top:7px;padding-left:37px;}
+.setbtn{background:var(--bg3);border:1px solid var(--line);color:var(--txt3);font-size:10.5px;font-weight:600;padding:5px 12px;border-radius:14px;cursor:pointer;font-family:'Archivo',sans-serif;}
+.setbtn:active{border-color:var(--accent);color:var(--accent);}
+.exrow{display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid var(--line);}
+.exrow .exinfo{flex:1;min-width:0;}
+.exrow .exn{font-size:13.5px;font-weight:600;}
+.cardio-note{font-size:13px;color:var(--txt2);padding:11px 0 3px;border-top:1px solid var(--line);line-height:1.5;}
+.cardio-note b{color:var(--txt);font-weight:600;}
+.datebar{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.datebar button.nav{width:38px;height:38px;border-radius:var(--r-sm);background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-size:16px;cursor:pointer;flex-shrink:0;}
+.datebar button.nav:active{background:var(--bg3);}
+.datebar .dlabel{flex:1;text-align:center;}
+.datebar .dlabel .dd{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;}
+.datebar .dlabel .dw{font-size:11px;color:var(--txt3);margin-top:1px;}
+.today-btn{background:transparent;border:1px solid var(--line);color:var(--txt3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:6px 9px;border-radius:6px;cursor:pointer;}
+.today-btn.active{border-color:var(--accent);color:var(--accent);}
+.weekstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:16px;}
+.wsd{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 2px;text-align:center;cursor:pointer;transition:.15s;}
+.wsd .wsw{font-size:9.5px;color:var(--txt3);text-transform:uppercase;font-weight:700;}
+.wsd .wsn{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;margin-top:1px;}
+.wsd.sel{border-color:var(--accent);background:var(--bg3);}
+.wsd .wsdot{width:5px;height:5px;border-radius:50%;background:var(--protein);margin:3px auto 0;opacity:0;}
+.wsd.has .wsdot{opacity:1;}
+.ringgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:18px;}
+.ringcard{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px 6px 11px;text-align:center;}
+.ringcard svg{display:block;margin:0 auto;}
+.ringcard .rv{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;}
+.ringcard .rt{font-size:10px;color:var(--txt3);margin-top:1px;}
+.ringcard .rl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:6px;}
+.ringcard .rrem{font-size:9.5px;color:var(--txt3);margin-top:2px;}
+.slot{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);margin-bottom:11px;overflow:hidden;}
+.slot-head{display:flex;align-items:center;gap:8px;padding:12px 14px 9px;}
+.slot-head .sname{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;text-transform:uppercase;flex:1;}
+.slot-head .scal{font-size:12px;color:var(--txt3);font-weight:600;}
+.fooditem{display:flex;align-items:center;gap:9px;padding:9px 14px;border-top:1px solid var(--line);}
+.fooditem .chk{width:26px;height:26px;font-size:13px;}
+.fooditem .fi{flex:1;min-width:0;}
+.fooditem .fn{font-size:13px;font-weight:600;line-height:1.2;}
+.fooditem .fn.eaten{color:var(--txt3);}
+.fooditem .fm{font-size:10.5px;color:var(--txt3);margin-top:6px;}
+.fooditem .fm b{color:var(--protein);font-weight:600;}
+.fdel{background:transparent;border:none;color:var(--txt3);font-size:15px;cursor:pointer;padding:4px;flex-shrink:0;}
+.fdel:active{color:var(--danger);}
+.addrow{padding:10px 14px 13px;border-top:1px solid var(--line);}
+.addbtn{width:100%;background:var(--bg3);border:1px dashed var(--line);color:var(--txt3);padding:9px;border-radius:var(--r-sm);font-size:12px;font-weight:600;cursor:pointer;font-family:'Archivo',sans-serif;}
+.addbtn:active{background:var(--line);}
+.addform{display:none;margin-top:10px;}
+.addform.open{display:block;}
+.presetrow{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:9px;}
+.preset{background:var(--bg3);border:1px solid var(--line);border-radius:20px;padding:6px 11px;font-size:11px;white-space:nowrap;cursor:pointer;color:var(--txt3);flex-shrink:0;font-weight:500;}
+.preset:active{border-color:var(--accent);color:var(--accent);}
+.fgrid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:9px;}
+.fgrid .macroline{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.finput{background:var(--bg3);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:9px 10px;font-size:13px;font-family:'Archivo',sans-serif;width:100%;}
+.finput::placeholder{color:var(--txt3);}
+.finput:focus{outline:none;border-color:var(--accent);}
+.fmwrap{position:relative;}
+.fmwrap label{position:absolute;top:-7px;left:8px;font-size:8.5px;background:var(--bg2);padding:0 4px;color:var(--txt3);text-transform:uppercase;font-weight:700;letter-spacing:.04em;}
+.formbtns{display:flex;gap:7px;}
+.btn-primary{flex:1;background:var(--accent);color:var(--ontag);border:none;border-radius:7px;padding:11px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;font-family:'Oswald',sans-serif;}
+.btn-primary:active{transform:scale(.98);}
+.btn-ghost{background:var(--bg3);color:var(--txt2);border:1px solid var(--line);border-radius:7px;padding:11px 16px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Archivo',sans-serif;}
+.btn-ghost:active{background:var(--line);}
+.targetcard{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:16px;}
+.targetcard .th{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.targetcard .th h3{font-size:14px;font-weight:600;text-transform:uppercase;}
+.editlink{background:transparent;border:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;}
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.tgrid .ti{text-align:center;}
+.tgrid .ti .tv{font-family:'Oswald',sans-serif;font-size:19px;font-weight:700;}
+.tgrid .ti .tl{font-size:9.5px;color:var(--txt3);text-transform:uppercase;font-weight:600;margin-top:1px;}
+.tgrid .ti input{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:7px 3px;font-size:15px;text-align:center;font-family:'Oswald',sans-serif;font-weight:600;}
+.tgrid .ti input:focus{outline:none;border-color:var(--accent);}
+.daysum{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:16px;}
+.daysum h3{font-size:13px;font-weight:600;text-transform:uppercase;margin-bottom:11px;color:var(--txt2);}
+.mbar{margin-bottom:11px;}
+.mbar:last-child{margin-bottom:0;}
+.mbar .ml{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;}
+.mbar .ml .mname{font-weight:600;}
+.mbar .ml .mval{color:var(--txt3);}
+.mbar .mtrack{height:9px;background:var(--bg3);border-radius:5px;overflow:hidden;}
+.mbar .mfill{height:100%;border-radius:5px;transition:.4s;}
+/* ---- PLAN ---- */
+.plan-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-size:11px;color:var(--txt3);}
+.plan-legend span{display:flex;align-items:center;gap:6px;}
+.plan-sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex-shrink:0;}
+.plan-chartwrap{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px 12px 10px;margin-bottom:16px;}
+.plan-chartleg{display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--txt3);}
+.plan-chartleg span{display:flex;align-items:center;gap:5px;}
+.plan-chartbox{position:relative;width:100%;height:200px;}
+.plan-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(94px,1fr));gap:7px;margin-bottom:14px;}
+.plan-card{background:var(--bg2);border:1px solid var(--line);border-top-width:3px;border-radius:var(--r-sm);padding:10px 9px 11px;cursor:pointer;transition:.15s;}
+.plan-card:active{transform:scale(.97);}
+.plan-card.on{background:var(--bg3);border-color:var(--accent);}
+.plan-wn{font-family:'Oswald',sans-serif;font-size:10.5px;color:var(--txt3);text-transform:uppercase;font-weight:600;}
+.plan-wl{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;margin-top:1px;}
+.plan-track{height:5px;background:var(--bg3);border-radius:3px;margin:8px 0 6px;overflow:hidden;}
+.plan-fill{height:100%;border-radius:3px;}
+.plan-meta{font-size:10px;color:var(--txt3);}
+.plan-panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 14px;}
+.plan-phase{font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+.plan-title{font-family:'Oswald',sans-serif;font-size:19px;font-weight:600;margin:2px 0 5px;}
+.plan-sub{font-size:13px;color:var(--txt2);line-height:1.55;margin-bottom:12px;}
+.plan-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px;}
+.plan-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.plan-schedh{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);font-weight:700;margin-bottom:4px;}
+.plan-row{display:flex;gap:11px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline;}
+.plan-day{width:38px;flex-shrink:0;font-family:'Oswald',sans-serif;font-weight:600;font-size:12px;color:var(--txt2);text-transform:uppercase;}
+.plan-rc{flex:1;font-size:12.5px;line-height:1.45;color:var(--txt2);}
+.plan-mod{flex-shrink:0;font-size:10px;color:var(--txt3);text-align:right;max-width:96px;}
+.plan-coach{margin-top:13px;background:rgba(45,214,193,.08);border:1px solid var(--accent-dim);border-radius:var(--r-sm);padding:11px 13px;font-size:12.5px;line-height:1.55;color:var(--txt2);}
+.plan-coach b{color:var(--txt);font-weight:600;}
+.dsection{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:15px;margin-bottom:13px;}
+.dsection h3{font-size:14px;font-weight:600;text-transform:uppercase;margin-bottom:4px;}
+.dnote{font-size:11.5px;color:var(--txt3);line-height:1.6;margin-bottom:11px;}
+.proginfo{display:flex;align-items:baseline;gap:8px;margin:8px 0 12px;}
+.proginfo .pname{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;}
+.proginfo .pmeta{font-size:11.5px;color:var(--txt3);}
+.dta{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--txt2);border-radius:var(--r-sm);padding:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;resize:vertical;}
+.dta:focus{outline:none;border-color:var(--accent);}
+.dbtnrow{display:flex;gap:7px;margin-top:9px;}
+.archrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:12.5px;}
+.archrow:first-of-type{border-top:none;}
+.archrow .an{font-weight:600;flex:1;}
+.archrow .ad{font-size:10.5px;color:var(--txt3);white-space:nowrap;}
+.archtag{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--accent);background:rgba(45,214,193,.13);padding:2px 7px;border-radius:9px;letter-spacing:.04em;}
+.storewarn{display:none;background:rgba(147,150,160,.12);border:1px solid var(--danger);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:13px;font-size:11.5px;line-height:1.5;color:var(--txt2);}
+.storewarn.show{display:block;}
+.storewarn b{color:var(--txt);}
+.empty{text-align:center;color:var(--txt3);font-size:12px;padding:14px;}
+.footnote{text-align:center;color:var(--txt3);font-size:10.5px;margin-top:20px;line-height:1.6;}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--accent);color:var(--txt);padding:11px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:50;max-width:90%;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* ---- BODY ---- */
+.bstatgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;}
+.bstat{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px 8px 11px;text-align:center;}
+.bstat .bv{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;line-height:1.1;}
+.bstat .bv .bsm{color:var(--txt3);font-size:14px;padding:0 2px;}
+.bstat .bl{font-size:9.5px;color:var(--txt3);text-transform:uppercase;font-weight:700;letter-spacing:.05em;margin-top:4px;}
+.bstat .bd{font-size:10px;color:var(--txt3);margin-top:3px;font-weight:600;}
+.bhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.bunit{font-size:10px;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.bform{margin-bottom:6px;}
+.bform .brow{display:flex;gap:8px;margin-bottom:10px;align-items:center;}
+.bform .brow .fmwrap{flex:1 1 0;min-width:0;}
+.finput{min-width:0;}
+input[type="date"].finput{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;min-height:40px;line-height:1.2;}
+@media (max-width:540px){
+  .bform .brow{flex-wrap:wrap;gap:16px 8px;margin-bottom:14px;}
+  .bform .brow > *,.bform .brow .fmwrap{flex:1 1 100%;}
+  .bform .finput{font-size:16px;}
+  .slotchips{flex:1 1 100%;}
+  .bstatgrid{gap:6px;}
+  .bstat{padding:11px 4px 9px;}
+  .bstat .bv{font-size:17px;}
+  .bstat .bl{font-size:8.5px;}
+}
+.bform .btn-primary{flex:1;}
+.bform .btn-ghost{flex:1;}
+.bform .btn-ghost.hasphoto{border-color:var(--accent);color:var(--accent);}
+.bchartbox{position:relative;width:100%;height:170px;margin:4px 0 12px;}
+.bw-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-top:1px solid var(--line);}
+.bw-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line);cursor:pointer;background:var(--bg3);flex-shrink:0;}
+.bw-nothumb{width:44px;height:44px;border-radius:8px;background:var(--bg3);border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:14px;flex-shrink:0;}
+.bw-info{flex:1;min-width:0;}
+.bw-w{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;}
+.bw-d{font-size:10.5px;color:var(--txt3);margin-top:1px;}
+.bw-delta{font-family:'Oswald',sans-serif;font-size:12.5px;font-weight:600;white-space:nowrap;}
+.slotchips{display:flex;gap:6px;flex:1;}
+.slotchip{flex:1;background:var(--bg3);border:1px solid var(--line);color:var(--txt3);font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;padding:10px 0;border-radius:7px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;}
+.slotchip.on{background:var(--accent);border-color:var(--accent);color:var(--ontag);}
+.glegend{display:flex;gap:14px;font-size:11px;color:var(--txt3);margin-bottom:2px;}
+.glegend span{display:flex;align-items:center;gap:5px;}
+.glegend i{display:inline-block;width:16px;height:0;}
+.glegend .gl-am{border-top:2px solid var(--accent);}
+.glegend .gl-pm{border-top:2px dashed #e0992a;}
+.bg-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
+.bg-slot{font-family:'Oswald',sans-serif;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:9px;letter-spacing:.04em;}
+.bg-slot.am{background:rgba(45,214,193,.14);color:var(--accent);}
+.bg-slot.pm{background:rgba(224,153,42,.16);color:#e0992a;}
+.bg-val{font-family:'Oswald',sans-serif;font-size:14.5px;font-weight:700;min-width:40px;}
+.bg-date{color:var(--txt3);font-size:11px;flex:1;}
+.brem{background:transparent;border:none;color:var(--txt3);font-size:15px;cursor:pointer;padding:4px 6px;flex-shrink:0;}
+.bmore{width:100%;background:transparent;border:none;color:var(--accent);font-size:11px;font-weight:700;padding:10px 0 2px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;font-family:'Archivo',sans-serif;}
+.pmodal{position:relative;max-width:520px;width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px;}
+.pmodal img{width:100%;border-radius:8px;display:block;max-height:70vh;object-fit:contain;background:var(--bg3);}
+.pmodal .pmeta{font-family:'Oswald',sans-serif;font-size:14px;color:var(--txt);padding:10px 4px 4px;text-align:center;font-weight:600;}
+.pm-close{position:absolute;top:16px;right:16px;background:var(--bg3);border:1px solid var(--line);border-radius:50%;width:30px;height:30px;color:var(--txt2);font-size:14px;cursor:pointer;}
+</style>
+
+<header>
+  <div class="brand">
+    <h1>RE<span>BUILD</span></h1>
+    <p id="brandsub">Training tracker</p>
+  </div>
+  <div class="headright">
+    <div class="hbtns">
+      <button class="themebtn" id="syncbtn" onclick="saveAndSync(this)" title="Save &amp; Sync" aria-label="Save and sync">⟳</button>
+      <button class="themebtn" id="themebtn" onclick="toggleTheme()" aria-label="Toggle light/dark theme">☀️</button>
+    </div>
+    <div class="savechip"><span class="dot" id="savedot"></span><span id="savetxt">Saved</span></div>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tab active" data-view="train" onclick="switchView('train')">Train</button>
+  <button class="tab" data-view="plan" onclick="switchView('plan')">Plan</button>
+  <button class="tab" data-view="body" onclick="switchView('body')">Body</button>
+  <button class="tab" data-view="data" onclick="switchView('data')">Data</button>
+</div>
+<div class="view active" id="view-train">
+  <div class="weeks" id="weekpills"></div>
+  <div class="phase-banner" id="phasebanner"></div>
+  <div class="wkprog"><div class="lbl" id="wkproglbl">0/0</div><div class="bar"><div class="fill" id="wkprogfill"></div></div></div>
+  <div id="daylist"></div>
+</div>
+<div class="view" id="view-plan">
+  <div class="plan-legend" id="plan-legend"></div>
+  <div class="plan-chartwrap">
+    <div class="plan-chartleg">
+      <span><i style="width:16px;height:2px;background:var(--accent);display:inline-block;border-radius:2px"></i>Volume %</span>
+      <span><i style="width:16px;height:0;border-top:2px dashed #e0992a;display:inline-block"></i>Intensity (RPE)</span>
+    </div>
+    <div class="plan-chartbox"><canvas id="qaChart"></canvas></div>
+  </div>
+  <div class="plan-cards" id="plan-cards"></div>
+  <div class="plan-panel" id="plan-panel"></div>
+</div>
+<div class="view" id="view-body">
+  <div class="bstatgrid" id="bstatgrid"></div>
+  <div class="dsection">
+    <div class="bhead"><h3>Weight — Weekly Check-In</h3><span class="bunit">lb</span></div>
+    <div class="dnote">Log once a week — same day, same conditions. Attach the week's progress photo with it.</div>
+    <div class="bform">
+      <div class="brow">
+        <div class="fmwrap"><label>date</label><input class="finput" type="date" id="bw-date"></div>
+        <div class="fmwrap"><label>weight (lb)</label><input class="finput" type="number" inputmode="decimal" step="0.1" id="bw-weight" placeholder="0.0"></div>
+      </div>
+      <div class="brow">
+        <button class="btn-ghost" id="bw-photobtn" onclick="document.getElementById('bw-photo').click()">📷 Add photo</button>
+        <input type="file" id="bw-photo" accept="image/*" hidden>
+        <button class="btn-primary" onclick="addWeight()">Save check-in</button>
+      </div>
+    </div>
+    <div class="bchartbox"><canvas id="wChart"></canvas></div>
+    <div id="bw-list"></div>
+  </div>
+  <div class="dsection">
+    <div class="bhead"><h3>Blood Glucose</h3><span class="bunit">mg/dL</span></div>
+    <div class="dnote">Log readings as you take them — typically one AM and one PM.</div>
+    <div class="bform">
+      <div class="brow">
+        <div class="fmwrap"><label>date</label><input class="finput" type="date" id="bg-date"></div>
+        <div class="fmwrap"><label>reading</label><input class="finput" type="number" inputmode="numeric" id="bg-value" placeholder="mg/dL"></div>
+      </div>
+      <div class="brow">
+        <div class="slotchips">
+          <button class="slotchip on" id="bg-am" onclick="setGSlot('AM')">AM</button>
+          <button class="slotchip" id="bg-pm" onclick="setGSlot('PM')">PM</button>
+        </div>
+        <button class="btn-primary" onclick="addGlucose()">Add reading</button>
+      </div>
+    </div>
+    <div class="glegend"><span><i class="gl-am"></i>AM</span><span><i class="gl-pm"></i>PM</span></div>
+    <div class="bchartbox"><canvas id="gChart"></canvas></div>
+    <div id="bg-list"></div>
+  </div>
+</div>
+<div class="view" id="view-data">
+  <div class="storewarn" id="storewarn"><b>Heads up — this view can't save at all.</b> Your data is held only for this session and won't survive a refresh. Tap <b>Copy</b> under Back up before you close, then <b>Merge</b> or <b>Restore</b> it on a device that saves.</div>
+  <div class="dsection">
+    <h3>Cloud sync (your Google Drive)</h3>
+    <div class="dnote">Optional, one-time setup per device. Deploy the small Google Apps Script from SETUP.md, then paste its web app URL and your key here. From then on, every device you open this on shares one set of data automatically. Your data lives in a file in your own Google Drive.</div>
+    <input class="finput" id="cloud-url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" style="margin-bottom:8px">
+    <input class="finput" id="cloud-key" placeholder="Sync key (the KEY you set in the script)" autocomplete="off" style="margin-bottom:8px">
+    <div class="dbtnrow">
+      <button class="btn-primary" id="cloud-save-btn" onclick="saveCloudConfig()">Save &amp; test</button>
+      <button class="btn-ghost" onclick="clearCloudConfig()">Turn off</button>
+    </div>
+    <div class="syncbig" style="margin-top:12px"><button class="btn-primary" id="syncbig-btn" onclick="saveAndSync(this)">⟳ Save &amp; Sync</button></div>
+    <div class="syncstate" id="syncstate"></div>
+  </div>
+  <div class="dsection">
+    <h3>Current program</h3>
+    <div class="proginfo"><span class="pname" id="d-progname">—</span><span class="pmeta" id="d-progmeta"></span></div>
+    <h3 style="font-size:12.5px;margin-top:4px;">Load a new program</h3>
+    <div class="dnote">When you finish this block, ask Claude in this project to build your next mesocycle. Paste the program code it gives you below. Programs may include per-week overview data (volume %, RPE, coaching notes) so the Plan tab renders the full chart and review. Your current block is archived (kept in backups) and your workout log resets fresh — meals and macros carry over.</div>
+    <textarea class="dta" id="prog-input" rows="5" placeholder="Paste new program code here..."></textarea>
+    <div class="dbtnrow"><button class="btn-primary" onclick="loadNewProgram()">Load program</button></div>
+  </div>
+  <div class="dsection">
+    <h3>Back up your data</h3>
+    <div class="dnote">Everything — program, workouts, weight and glucose logs, photos, and archived blocks — is below. Save it before switching phones or starting a new meso. Download a file, or copy the text into a note or email to yourself.</div>
+    <textarea class="dta" id="backup-text" rows="6" readonly onclick="this.select()"></textarea>
+    <div class="dbtnrow">
+      <button class="btn-primary" onclick="downloadBackup()">Download backup</button>
+      <button class="btn-ghost" onclick="copyBackup()">Copy</button>
+    </div>
+  </div>
+  <div class="dsection">
+    <h3>Bring in data from another device</h3>
+    <div class="dnote">Paste a backup copied from your other device. <b>Merge</b> adds anything this device is missing (logged sets, weigh-ins, glucose readings) and keeps everything already here. Use this for phone → desktop. <b>Restore</b> replaces all data on this device with the backup. Use that to set up a fresh device.</div>
+    <textarea class="dta" id="restore-input" rows="5" placeholder="Paste backup text here..."></textarea>
+    <div class="dbtnrow">
+      <button class="btn-primary" onclick="mergeBackup()">Merge into this device</button>
+      <button class="btn-ghost" onclick="restoreBackup()">Restore (replace all)</button>
+    </div>
+  </div>
+  <div class="dsection">
+    <h3>Training history</h3>
+    <div class="dnote">Completed training blocks. These stay in your backups so no logged work is ever lost.</div>
+    <div id="archlist"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="notemodal">
+  <div class="modal">
+    <div class="mhead">
+      <h3>Exercise Note</h3>
+      <button class="mclose" onclick="closeNoteModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="msub" id="note-exname">—</div>
+    <textarea id="note-text" placeholder="e.g. Sled weight is 118 · seat at notch 4 · last week felt heavy"></textarea>
+    <div class="pinrow" id="note-pinrow">
+      <span class="chk on" id="note-pin">✓</span>
+      <span class="pinlabel">Pin note to exercise</span>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-danger-text" onclick="deleteNote()">Delete</button>
+      <span class="spacer"></span>
+      <button class="btn-ghost" onclick="closeNoteModal()">Cancel</button>
+      <button class="btn-primary" style="flex:0 0 auto;padding:11px 20px;" onclick="saveNote()">Update</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="photomodal">
+  <div class="pmodal">
+    <img id="photomodal-img" alt="Progress photo">
+    <div class="pmeta" id="photomodal-meta"></div>
+    <button class="mclose pm-close" onclick="closePhotoModal()" aria-label="Close">✕</button>
+  </div>
+</div>
+<p class="footnote" id="footnote">Data saves automatically and syncs across your devices.<br>Tip: download a backup from the Data tab every few weeks.</p>
+<script>
+/* ---------- helpers ---------- */
+function ex(n,t){return{n,t};}
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function hexA(hex,a){
+  const m=/^#?([0-9a-fA-F]{6})$/.exec(String(hex).trim());
+  if(!m)return hex;
+  const n=parseInt(m[1],16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+}
+const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+/* ---------- default program: 8-Week Recomp Block (starts Mon Sep 7, 2026) ---------- */
+const DEFAULT_PROGRAM={
+ name:"8-Week Recomp Block",rev:6,
+ weeks:{
+  "1":{label:"Base",phase:"Base",accent:"#5DCAA5",summary:"MEV · RPE 6-7",dates:"Sep 7 – 13",
+    ov:{vol:62,rpe:6.5,volL:"MEV",rpeL:"RPE 6–7",
+      sub:"Re-entry at minimum effective volume while the new diet settles in. Groove the new split and log baseline numbers everywhere.",
+      badges:["MEV volume","RPE 6–7","Log baselines"],
+      coach:"<b>Leave 3–4 reps in reserve on every set.</b> First week of a new split in a deficit — the goal is clean technique and baseline numbers, not soreness. Monday and Thursday ergs stay honest: Zone 2 means you can hold a conversation."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Zone 2",note:"<b>BikeErg 20 min + SkiErg 10 min</b> at conversational pace. Zone 2 only — if you can't hold a sentence, slow down."},
+    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","3 × 10"),ex("Leg press","3 × 12"),ex("Leg extension","3 × 15")]},
+    Wed:{t:"lift",title:"Arms + Chest",ex:[ex("Close-grip Smith press","3 × 10"),ex("OH cable triceps extension","3 × 12"),ex("Cross-body cable extension","3 × 12"),ex("Cable curl","3 × 12"),ex("EZ bar curl","3 × 10")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Intervals",note:"Warm up 5 min easy, then <b>6 × (1:00 hard / 1:00 easy)</b> — alternate BikeErg and SkiErg by round."},
+    Fri:{t:"lift",title:"Legs — Quads + Hamstrings",ex:[ex("Belt squat","3 × 10"),ex("Stiff-leg deadlift","3 × 10"),ex("Walking lunge","2 × 10/leg"),ex("Standing calf raise","3 × 15")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Baseline week. Note your class scores and times. Focus: <b>steady pacing</b> — don't redline early."},
+    Sun:{t:"lift",title:"Arms — Triceps + Biceps",ex:[ex("Bar pushdown","3 × 12"),ex("Cable rope pushdown","3 × 12"),ex("Rope OH triceps extension","3 × 12"),ex("Machine triceps pushdown","2 × 12"),ex("Bayesian cable curl","3 × 12"),ex("Machine preacher curl","3 × 12"),ex("Hammer curl","2 × 12")]}}},
+  "2":{label:"Build",phase:"Base",accent:"#5DCAA5",summary:"MEV+ · RPE 7",dates:"Sep 14 – 20",
+    ov:{vol:70,rpe:7,volL:"MEV+",rpeL:"RPE 7",
+      sub:"One set added to the lead movements of each session. Erg intervals grow to 8 rounds.",
+      badges:["MEV+ volume","RPE 7","+1 set on leads"],
+      coach:"<b>Add load only where every set hit the top of the range last week.</b> On 1,900 kcal recovery is the limiter — earn each jump, and keep the extra sets at the same load as Week 1."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Zone 2",note:"<b>BikeErg 22 min + SkiErg 13 min</b>, easy Zone 2."},
+    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","4 × 10"),ex("Leg press","4 × 12"),ex("Leg extension","3 × 15")]},
+    Wed:{t:"lift",title:"Arms + Chest",ex:[ex("Close-grip Smith press","4 × 10"),ex("OH cable triceps extension","3 × 12"),ex("Cross-body cable extension","3 × 12"),ex("Cable curl","3 × 12"),ex("EZ bar curl","4 × 10")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Intervals",note:"<b>8 × (1:00 hard / 1:00 easy)</b>, alternating machines."},
+    Fri:{t:"lift",title:"Legs — Quads + Hamstrings",ex:[ex("Belt squat","4 × 8"),ex("Stiff-leg deadlift","4 × 10"),ex("Walking lunge","3 × 10/leg"),ex("Standing calf raise","3 × 15")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>sled push/pull effort</b> — drive through the legs, short powerful steps."},
+    Sun:{t:"lift",title:"Arms — Triceps + Biceps",ex:[ex("Bar pushdown","4 × 12"),ex("Cable rope pushdown","3 × 12"),ex("Rope OH triceps extension","3 × 12"),ex("Machine triceps pushdown","2 × 12"),ex("Bayesian cable curl","4 × 12"),ex("Machine preacher curl","3 × 12"),ex("Hammer curl","2 × 12")]}}},
+  "3":{label:"Accumulate",phase:"Accumulation",accent:"#7F77DD",summary:"MAV · FST-7 begins · RPE 7-8",dates:"Sep 21 – 27",
+    ov:{vol:87,rpe:7.5,volL:"MAV",rpeL:"RPE 7–8",
+      sub:"Full accumulation begins: FST-7 finishers arrive on leg extensions, leg curls, overhead extensions, and cable curls. Rep ranges open up.",
+      badges:["MAV volume","RPE 7–8","Full FST-7 begins"],
+      coach:"<b>FST-7 rest is 30–45 seconds, no more.</b> Keep 2–3 reps in reserve on straight sets. Rep progression rules now: beat last week's reps at a load before adding weight to it."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Zone 2",note:"<b>BikeErg 25 min + SkiErg 15 min</b>, Zone 2."},
+    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","4 × 8-10"),ex("Leg press","3 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    Wed:{t:"lift",title:"Arms + Chest",ex:[ex("Close-grip Smith press","4 × 8-10"),ex("OH cable triceps extension","3 × 12-15"),ex("Cross-body cable extension","3 × 12-15"),ex("Cable curl|FST","7 × 12-15"),ex("EZ bar curl","3 × 8-10")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Intervals",note:"<b>10 × (1:00 hard / 1:00 easy)</b>, alternating machines."},
+    Fri:{t:"lift",title:"Legs — Quads + Hamstrings",ex:[ex("Belt squat","4 × 6-8"),ex("Stiff-leg deadlift","3 × 10-12"),ex("Walking lunge","3 × 12-15/leg"),ex("Standing calf raise","4 × 15-18")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>wall balls</b> — steady rhythm; break before you fail, not after."},
+    Sun:{t:"lift",title:"Arms — Triceps + Biceps",ex:[ex("Bar pushdown","4 × 10-12"),ex("Cable rope pushdown","3 × 12-15"),ex("Rope OH triceps extension|FST","7 × 12-15"),ex("Machine triceps pushdown","2 × 12-15"),ex("Bayesian cable curl","3 × 10-12"),ex("Machine preacher curl","3 × 12-15"),ex("Hammer curl","3 × 12")]}}},
+  "4":{label:"Push",phase:"Accumulation",accent:"#7F77DD",summary:"+Load · RPE 8",dates:"Sep 28 – Oct 4",
+    ov:{vol:92,rpe:8,volL:"MAV",rpeL:"RPE 8",
+      sub:"Same set structure as Week 3 with load bumps on the primary compounds. Thursday becomes a 20-minute EMOM.",
+      badges:["MAV volume","RPE 8","+Load on compounds"],
+      coach:"<b>RPE 8 = about 2 reps left on your last set.</b> Avoid true failure on compounds — in a deficit it costs more recovery than it buys growth. Jog your Hyrox transitions Saturday."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Zone 2",note:"<b>BikeErg 25 min + SkiErg 15 min</b>, Zone 2."},
+    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat (+load)","4 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    Wed:{t:"lift",title:"Arms + Chest",ex:[ex("Close-grip Smith press (+load)","4 × 8-10"),ex("OH cable triceps extension","4 × 12-15"),ex("Cross-body cable extension","3 × 12-15"),ex("Cable curl|FST","7 × 12-15"),ex("EZ bar curl (+load)","4 × 8-10")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Intervals",note:"<b>20-min EMOM</b>: 40 sec work / 20 sec rest, alternate BikeErg and SkiErg."},
+    Fri:{t:"lift",title:"Legs — Quads + Hamstrings",ex:[ex("Belt squat (+load)","5 × 6-8"),ex("Stiff-leg deadlift","3 × 10-12"),ex("Walking lunge","3 × 12-15/leg"),ex("Standing calf raise","4 × 15-18")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>transitions</b> — jog between stations, never walk."},
+    Sun:{t:"lift",title:"Arms — Triceps + Biceps",ex:[ex("Bar pushdown (+load)","4 × 10-12"),ex("Cable rope pushdown","3 × 12-15"),ex("Rope OH triceps extension|FST","7 × 12-15"),ex("Machine triceps pushdown","3 × 12-15"),ex("Bayesian cable curl","4 × 10-12"),ex("Machine preacher curl","3 × 12-15"),ex("Hammer curl","3 × 12")]}}},
+  "5":{label:"Climb",phase:"Accumulation",accent:"#7F77DD",summary:"MAV+ · RPE 8",dates:"Oct 5 – 11",
+    ov:{vol:97,rpe:8,volL:"MAV+",rpeL:"RPE 8",
+      sub:"Volume climbs toward peak: fifth sets on hack squat and belt squat, arms pick up extra sets.",
+      badges:["MAV+ volume","RPE 8","Checkpoint week"],
+      coach:"<b>Checkpoint:</b> if lifts stall two sessions in a row or sleep degrades, take a 3–4 day diet break at maintenance calories, then resume. Better to bank recovery here than crash in Week 6."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Zone 2",note:"<b>BikeErg 28 min + SkiErg 17 min</b>, Zone 2."},
+    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","5 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    Wed:{t:"lift",title:"Arms + Chest",ex:[ex("Close-grip Smith press","4 × 8"),ex("OH cable triceps extension","4 × 12"),ex("Cross-body cable extension","4 × 12-15"),ex("Cable curl|FST","7 × 12-15"),ex("EZ bar curl","4 × 8-10")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Intervals",note:"<b>12 × (1:00 hard / 1:00 easy)</b>, alternating machines."},
+    Fri:{t:"lift",title:"Legs — Quads + Hamstrings",ex:[ex("Belt squat","5 × 6-8"),ex("Stiff-leg deadlift","4 × 10"),ex("Walking lunge","3 × 12/leg"),ex("Standing calf raise","4 × 15")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>erg pacing</b> — hold the splits you hit on Thursday intervals."},
+    Sun:{t:"lift",title:"Arms — Triceps + Biceps",ex:[ex("Bar pushdown","4 × 10"),ex("Cable rope pushdown","4 × 12"),ex("Rope OH triceps extension|FST","7 × 12-15"),ex("Machine triceps pushdown","3 × 12"),ex("Bayesian cable curl","4 × 10"),ex("Machine preacher curl","4 × 12"),ex("Hammer curl","3 × 12")]}}},
+  "6":{label:"Peak",phase:"Peak volume",accent:"#EF9F27",summary:"MRV · RPE 8-9",dates:"Oct 12 – 18",
+    ov:{vol:100,rpe:8.5,volL:"MRV",rpeL:"RPE 8–9",
+      sub:"Peak volume of the block. Saturday class counts as a hard day — nothing extra after it.",
+      badges:["MRV volume","RPE 8–9","Hardest week"],
+      coach:"<b>Sleep 7–9 hours and hit protein every day.</b> You're at MRV in a deficit — expect it to feel hard, add nothing anywhere, and remember the deload next-next week is what banks the gains."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Zone 2",note:"<b>BikeErg 28 min + SkiErg 17 min</b>, Zone 2."},
+    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","5 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    Wed:{t:"lift",title:"Arms + Chest",ex:[ex("Close-grip Smith press","4 × 8"),ex("OH cable triceps extension","4 × 12"),ex("Cross-body cable extension","4 × 12"),ex("Cable curl|FST","7 × 12"),ex("EZ bar curl","4 × 8")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Intervals",note:"<b>16 × (0:30 hard / 0:30 easy)</b>, alternating machines."},
+    Fri:{t:"lift",title:"Legs — Quads + Hamstrings",ex:[ex("Belt squat (heavier)","5 × 6"),ex("Stiff-leg deadlift","4 × 10"),ex("Walking lunge","4 × 12/leg"),ex("Standing calf raise","4 × 15")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Peak week. If class runs heavy, this is your hard day — <b>quality effort, clean form</b>."},
+    Sun:{t:"lift",title:"Arms — Triceps + Biceps",ex:[ex("Bar pushdown","4 × 10"),ex("Cable rope pushdown","4 × 12"),ex("Rope OH triceps extension|FST","7 × 12"),ex("Machine triceps pushdown","3 × 12"),ex("Bayesian cable curl","4 × 10"),ex("Machine preacher curl","4 × 12"),ex("Hammer curl","4 × 12")]}}},
+  "7":{label:"Intensify",phase:"Intensification",accent:"#EF9F27",summary:"-20% vol · +Load · RPE 8-9",dates:"Oct 19 – 25",
+    ov:{vol:64,rpe:8.5,volL:"−20% vol",rpeL:"RPE 8–9",
+      sub:"Intensification: FST-7 comes off, volume drops about 20%, loads go up. Chase heavy top sets.",
+      badges:["−20% volume","+Load","Heavy top sets"],
+      coach:"<b>Fewer sets, heavier weight.</b> Friday belt squat builds to heavy sets of 5 — quality over grind, keep rep speed honest. Go hard in Saturday's class but skip any extra volume after."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Zone 2",note:"<b>BikeErg 25 min + SkiErg 15 min</b>, Zone 2. Recovery matters more than volume this week."},
+    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat (heavy)","4 × 6-8"),ex("Leg press","3 × 8-10"),ex("Leg extension","3 × 12")]},
+    Wed:{t:"lift",title:"Arms + Chest",ex:[ex("Close-grip Smith press (heavy)","4 × 6-8"),ex("OH cable triceps extension","3 × 10-12"),ex("Cross-body cable extension","3 × 10-12"),ex("Cable curl","3 × 8-10"),ex("EZ bar curl (heavy)","3 × 6-8")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Intervals",note:"<b>10 × (1:00 / 1:00)</b> at quality pace — hit your splits, don't bury yourself."},
+    Fri:{t:"lift",title:"Legs — Quads + Hamstrings",ex:[ex("Belt squat (build to heavy sets)","5 × 5"),ex("Stiff-leg deadlift","3 × 8-10"),ex("Walking lunge","2 × 12/leg"),ex("Standing calf raise","3 × 12")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Loads are up in the gym this week — go hard in class but <b>skip any extra volume after</b>."},
+    Sun:{t:"lift",title:"Arms — Triceps + Biceps",ex:[ex("Bar pushdown (heavy)","4 × 8"),ex("Cable rope pushdown","3 × 10"),ex("Rope OH triceps extension","3 × 12"),ex("Bayesian cable curl (heavy)","3 × 8"),ex("Machine preacher curl","3 × 10"),ex("Hammer curl","2 × 12")]}}},
+  "8":{label:"Deload",phase:"Deload",accent:"#9396a0",summary:"-50% · RPE 5-6",dates:"Oct 26 – Nov 1",
+    ov:{vol:31,rpe:5.5,volL:"−50%",rpeL:"RPE 5–6",
+      sub:"Deload. Half the sets, easy effort, easy ergs. Supercompensate and close out the block.",
+      badges:["−50% volume","RPE 5–6","No FST-7"],
+      coach:"<b>The deload is not optional.</b> Keep the deficit, cut the training stress, and when the week wraps, ask Claude in this project for the next block and load it in the Data tab."},
+    days:{
+    Mon:{t:"cardio",title:"Nordic Erg — Recovery",note:"<b>25-30 min total</b>, very easy spin/ski. Active recovery only."},
+    Tue:{t:"lift",title:"Legs — Deload",ex:[ex("Hack squat","2 × 10"),ex("Leg press","2 × 12"),ex("Leg extension","2 × 15")]},
+    Wed:{t:"lift",title:"Arms + Chest — Deload",ex:[ex("Close-grip Smith press","2 × 10"),ex("OH cable triceps extension","2 × 12"),ex("Cable curl","2 × 12"),ex("EZ bar curl","2 × 10")]},
+    Thu:{t:"cardio",title:"Nordic Erg — Easy",note:"<b>20 min easy Zone 2</b>. No intervals — deload."},
+    Fri:{t:"lift",title:"Legs — Deload",ex:[ex("Belt squat","2 × 8"),ex("Stiff-leg deadlift","2 × 10"),ex("Standing calf raise","2 × 15")]},
+    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Deload — move at 60-70% effort, or skip entirely if beat up. Next block starts fresh."},
+    Sun:{t:"lift",title:"Arms — Deload",ex:[ex("Bar pushdown","2 × 12"),ex("Cable rope pushdown","2 × 12"),ex("Bayesian cable curl","2 × 10"),ex("Machine preacher curl","2 × 12")]}}}
+ }
+};
+/* ---------- storage: this device (localStorage) + optional Google Drive cloud sync ---------- */
+const mem={};
+const LSKEY='rebuild-recomp-v2';
+const CLOUDKEY='rebuild-cloud';
+let storeBroken=false, localAvail=false, hydratedLocalNewer=false;
+let cloud=null;              /* {url,key} once configured in the Data tab */
+let cloudOn=false;           /* true after a successful cloud read or write */
+let downloadsNS=null;        /* standalone build: the browser's own download is used */
+let syncTimer=null, syncDirty=false, syncRetried=false, lastSavedAt=0, syncBusy=false;
+try{localStorage.setItem('__rb_t','1');localStorage.removeItem('__rb_t');localAvail=true;}catch(e){localAvail=false;}
+try{const c=localStorage.getItem(CLOUDKEY);if(c)cloud=JSON.parse(c);}catch(e){cloud=null;}
+function cloudReady(){return !!(cloud&&cloud.url);}
+function cloudURL(){return cloud.url+(cloud.url.includes('?')?'&':'?')+'key='+encodeURIComponent(cloud.key||'');}
+async function cloudGet(){
+  const r=await fetch(cloudURL(),{method:'GET',redirect:'follow',cache:'no-store'});
+  const j=await r.json();
+  if(!j||j.error)throw new Error((j&&j.error)||'read failed');
+  return (j.state&&typeof j.state==='object')?j.state:null;
+}
+async function cloudPut(obj){
+  /* body sent as plain text on purpose: keeps it a simple request so Apps Script needs no preflight */
+  const r=await fetch(cloudURL(),{method:'POST',redirect:'follow',body:JSON.stringify(obj)});
+  const j=await r.json();
+  if(!j||j.error)throw new Error((j&&j.error)||'save failed');
+  return j;
+}
+const okShape=s=>!!(s&&typeof s==='object'&&s.keys&&typeof s.keys==='object');
+const hydrated=(async()=>{
+  let remote=null,local=null;
+  if(localAvail){try{const raw=localStorage.getItem(LSKEY);if(raw)local=JSON.parse(raw);}catch(e){}}
+  if(cloudReady()){try{remote=await cloudGet();cloudOn=true;}catch(e){cloudOn=false;}}
+  const rOk=okShape(remote),lOk=okShape(local);
+  let chosen=null;
+  if(rOk&&lOk)chosen=((local.updatedAt||0)>(remote.updatedAt||0))?local:remote;
+  else if(rOk)chosen=remote; else if(lOk)chosen=local;
+  if(chosen)Object.assign(mem,chosen.keys);
+  lastSavedAt=chosen?(chosen.updatedAt||0):0;
+  hydratedLocalNewer=lOk&&(!rOk||(local.updatedAt||0)>(remote.updatedAt||0));
+  if(chosen===local&&mem.__lite&&rOk&&Array.isArray(remote.keys['body-weights'])){
+    const rp={};remote.keys['body-weights'].forEach(x=>{if(x&&x.photo)rp[x.id]=x.photo;});
+    (mem['body-weights']||[]).forEach(x=>{if(x&&!x.photo&&rp[x.id])x.photo=rp[x.id];});
+  }
+  delete mem.__lite;delete mem['meal-plan'];delete mem['macro-targets'];
+})();
+async function loadKey(k,fb){
+  await hydrated;
+  return mem[k]!==undefined?mem[k]:fb;
+}
+function snapshot(){return{updatedAt:lastSavedAt||Date.now(),keys:mem};}
+function snapshotLite(){
+  const keys=Object.assign({},mem);
+  if(Array.isArray(keys['body-weights']))keys['body-weights']=keys['body-weights'].map(x=>{const y=Object.assign({},x);delete y.photo;return y;});
+  keys.__lite=true;
+  return{updatedAt:lastSavedAt||Date.now(),keys};
+}
+function writeLocal(){
+  if(!localAvail)return;
+  try{localStorage.setItem(LSKEY,JSON.stringify(snapshot()));}
+  catch(e){
+    try{localStorage.setItem(LSKEY,JSON.stringify(snapshotLite()));}
+    catch(e2){localAvail=false;evalBroken();}
+  }
+}
+let saveTimer=null;
+async function saveKey(k,v){
+  mem[k]=v;
+  lastSavedAt=Date.now();
+  const dot=document.getElementById('savedot'),txt=document.getElementById('savetxt');
+  if(dot){dot.classList.add('saving');txt.textContent='Saving';}
+  writeLocal();
+  queueSync();
+  flashSave();
+}
+function queueSync(){
+  if(!cloudReady())return;
+  syncDirty=true;syncRetried=false;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(doSync,2500);
+}
+async function doSync(){
+  if(!syncDirty||!cloudReady())return;
+  syncDirty=false;
+  try{
+    let remote=null;
+    try{remote=await cloudGet();}catch(e){remote=null;}
+    if(remoteHasData(remote)){
+      if(localHasData())mergeFromObject(remoteAsBackup(remote));
+      else applyRemote(remote);
+    }
+    lastSavedAt=Date.now();writeLocal();
+    const j=await cloudPut(snapshot());
+    cloudOn=true;
+    absorbServer(j);
+    if(!syncDirty)flashSave();
+  }catch(e){
+    cloudOn=false;
+    if(!syncRetried){syncRetried=true;syncDirty=true;syncTimer=setTimeout(doSync,6000);}
+    else{evalBroken();}
+  }
+}
+function evalBroken(){
+  storeBroken=!localAvail&&!cloudOn;
+  updateStoreWarn();
+  updateSyncState();
+  flashSave();
+}
+/* adopt a newer cloud copy into the running app */
+function applyRemote(remote){
+  const theme=mem['theme'];
+  Object.keys(mem).forEach(k=>delete mem[k]);
+  Object.assign(mem,remote.keys);
+  if(theme!==undefined)mem['theme']=theme;
+  delete mem.__lite;
+  lastSavedAt=remote.updatedAt||Date.now();
+  writeLocal();
+  activeProgram=validProgram(mem['program'])?mem['program']:clone(DEFAULT_PROGRAM);
+  workoutLog=(mem['workout-log']&&typeof mem['workout-log']==='object')?mem['workout-log']:{};
+  bodyWeights=Array.isArray(mem['body-weights'])?mem['body-weights']:[];
+  bodyGlucose=Array.isArray(mem['body-glucose'])?mem['body-glucose']:[];
+  archives=Array.isArray(mem['archives'])?mem['archives']:[];
+  mem['program']=activeProgram;mem['workout-log']=workoutLog;mem['body-weights']=bodyWeights;mem['body-glucose']=bodyGlucose;mem['archives']=archives;
+  mergeOverviewDefaults();migrateLog();
+  document.getElementById('brandsub').textContent=activeProgram.name;
+  renderTrain();renderBody();renderData();
+  if(document.getElementById('view-plan').classList.contains('active'))renderPlan();
+}
+function updateSyncState(){
+  const el=document.getElementById('syncstate');
+  const u=document.getElementById('cloud-url'),k=document.getElementById('cloud-key');
+  if(u&&cloud&&cloud.url&&!u.value)u.value=cloud.url;
+  if(k&&cloud&&cloud.key&&!k.value)k.value=cloud.key;
+  if(el){
+    if(!cloudReady())el.innerHTML='<span class="off">● This device only.</span> Everything is saved on this device. Set up cloud sync above and every device you open this on shares one set of data automatically.';
+    else if(cloudOn)el.innerHTML='<span class="on">● Sync is on (Google Drive).</span> Saves automatically. Newer data from another device is pulled in when you reopen the app or tap Save &amp; Sync.';
+    else el.innerHTML='<span class="off">● Cloud not reachable.</span> Data is still saved on this device. Check the URL and key, or your connection, then tap Save &amp; Sync.';
+  }
+  const fn=document.getElementById('footnote');
+  if(fn&&!storeBroken){
+    fn.innerHTML=(cloudReady()&&cloudOn)
+      ?'Data saves automatically and syncs across your devices.<br>Tip: download a backup from the Data tab every few weeks.'
+      :'Data saves on this device.<br>Tip: download a backup from the Data tab every few weeks.';
+  }
+}
+function remoteAsBackup(remote){
+  const k=remote.keys||{};
+  return {workoutLog:k['workout-log'],bodyWeights:k['body-weights'],bodyGlucose:k['body-glucose'],archives:k['archives'],deleted:k['deleted'],logEpoch:k['log-epoch']};
+}
+/* the backend merges every save and returns the result; fold anything new into this device */
+function absorbServer(j){
+  const st=j&&j.state;
+  if(!okShape(st))return;
+  if(!localHasData()){if(remoteHasData(st))applyRemote(st);return;}
+  const added=mergeFromObject(remoteAsBackup(st));
+  if(added.w+added.g+added.s>0)writeLocal();
+}
+function remoteHasData(remote){
+  if(!okShape(remote))return false;
+  const k=remote.keys;
+  return !!((Array.isArray(k['body-weights'])&&k['body-weights'].length)||
+    (Array.isArray(k['body-glucose'])&&k['body-glucose'].length)||
+    (k['workout-log']&&Object.keys(k['workout-log']).length));
+}
+function localHasData(){
+  return (bodyWeights&&bodyWeights.length)||(bodyGlucose&&bodyGlucose.length)||logHasWork();
+}
+async function saveCloudConfig(){
+  const url=(document.getElementById('cloud-url').value||'').trim();
+  const key=(document.getElementById('cloud-key').value||'').trim();
+  if(!url){toast('Paste the web app URL first');return;}
+  cloud={url,key};
+  try{localStorage.setItem(CLOUDKEY,JSON.stringify(cloud));}catch(e){}
+  const btn=document.getElementById('cloud-save-btn');
+  if(btn){btn.disabled=true;btn.textContent='Testing…';}
+  try{
+    const remote=await cloudGet();
+    cloudOn=true;
+    const remoteHas=remoteHasData(remote);
+    if(remoteHas&&!localHasData()){
+      applyRemote(remote);
+      toast('Connected — pulled your data from the cloud');
+    }else if(remoteHas){
+      const added=mergeFromObject(remoteAsBackup(remote));
+      lastSavedAt=Date.now();writeLocal();
+      syncDirty=true;await doSync();
+      toast('Connected — merged both copies ('+added.w+' weigh-ins, '+added.g+' readings, '+added.s+' sets added)');
+    }else{
+      lastSavedAt=Date.now();writeLocal();
+      syncDirty=true;await doSync();
+      toast('Connected — this device\'s data is now in the cloud');
+    }
+  }catch(e){
+    cloudOn=false;
+    toast('Could not connect: '+(e&&e.message?e.message:'check the URL and key'));
+  }
+  if(btn){btn.disabled=false;btn.textContent='Save & test';}
+  evalBroken();
+}
+function clearCloudConfig(){
+  cloud=null;cloudOn=false;
+  try{localStorage.removeItem(CLOUDKEY);}catch(e){}
+  const u=document.getElementById('cloud-url'),k=document.getElementById('cloud-key');
+  if(u)u.value='';if(k)k.value='';
+  evalBroken();
+  toast('Cloud sync turned off — data stays on this device');
+}
+async function saveAndSync(btn){
+  if(syncBusy)return;
+  if(!cloudReady()){toast('Set up cloud sync in the Data tab first');switchView('data');return;}
+  syncBusy=true;
+  const hdr=document.getElementById('syncbtn');
+  const big=document.getElementById('syncbig-btn');
+  if(hdr)hdr.classList.add('spin');
+  if(big){big._t=big.textContent;big.textContent='Syncing…';big.disabled=true;}
+  try{
+    clearTimeout(syncTimer);
+    const remote=await cloudGet();
+    cloudOn=true;
+    let msg='Synced';
+    if(remoteHasData(remote)){
+      if(!localHasData()){applyRemote(remote);msg='Pulled your data from the cloud';}
+      else{
+        const added=mergeFromObject(remoteAsBackup(remote));
+        const n=added.w+added.g+added.s;
+        if(n)msg='Merged '+n+' new item'+(n===1?'':'s')+' from your other device';
+      }
+    }
+    lastSavedAt=Date.now();writeLocal();
+    syncDirty=false;
+    const j=await cloudPut(snapshot());
+    absorbServer(j);
+    toast(msg);
+  }catch(e){
+    cloudOn=false;
+    toast('Could not reach cloud sync — check the URL, key, or connection');
+  }
+  syncBusy=false;
+  if(hdr)hdr.classList.remove('spin');
+  if(big){big.textContent=big._t||'⟳ Save & Sync';big.disabled=false;}
+  evalBroken();
+}
+/* when the app comes back to the foreground, quietly pull anything newer */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible'||!cloudReady()||syncDirty||syncBusy)return;
+  cloudGet().then(remote=>{
+    cloudOn=true;
+    if(okShape(remote)&&(remote.updatedAt||0)>lastSavedAt){applyRemote(remote);toast('Updated from your other device');}
+    updateSyncState();
+  }).catch(()=>{cloudOn=false;updateSyncState();});
+});
+function flashSave(){
+  const dot=document.getElementById('savedot'),txt=document.getElementById('savetxt');
+  if(!dot)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    if(storeBroken){dot.classList.add('saving');txt.textContent='Session only';}
+    else if(cloudReady()&&cloudOn){dot.classList.remove('saving');txt.textContent=syncDirty?'Saving':'Synced';}
+    else if(cloudReady()){dot.classList.remove('saving');txt.textContent='Saved here · cloud offline';}
+    else{dot.classList.remove('saving');txt.textContent='Saved on this device';}
+  },350);
+}
+function updateStoreWarn(){
+  const w=document.getElementById('storewarn');
+  if(w)w.classList.toggle('show',storeBroken);
+  const fn=document.getElementById('footnote');
+  if(fn&&storeBroken)fn.innerHTML='Saving is unavailable in this view — data is held for this session only.<br>Download a backup from the Data tab before you close.';
+}
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+/* ---------- state ---------- */
+let activeProgram=clone(DEFAULT_PROGRAM);
+let workoutLog={}, archives=[], bodyWeights=[], bodyGlucose=[];
+let curWeek=1, openDay=null;
+let planSel=0, planChart=null, wChart=null, gChart=null;
+let gSlot='AM', pendingPhoto=null, bwShowAll=false, bgShowAll=false;
+const addExOpen={};
+document.addEventListener('click',()=>{document.querySelectorAll('.exmenu.open,.setmenu.open').forEach(m=>m.classList.remove('open'));});
+/* ---------- program accessors ---------- */
+function weeksList(){return Object.keys(activeProgram.weeks).map(Number).sort((a,b)=>a-b);}
+function wk(w){return activeProgram.weeks[String(w)]||null;}
+function dayOf(w,d){const W=wk(w);return W&&W.days?(W.days[d]||null):null;}
+function trainDaysOf(w){return DAYS.filter(d=>dayOf(w,d));}
+function phaseC(w){const W=wk(w);return(W&&W.accent)||"#9396a0";}
+function phaseN(w){const W=wk(w);return(W&&W.phase)||"";}
+function metaL(w){const W=wk(w);return(W&&W.label)||("Week "+w);}
+function metaS(w){const W=wk(w);return(W&&W.summary)||"";}
+function weekOv(w){const W=wk(w);return(W&&W.ov)||null;}
+function validProgram(p){
+  if(!p||typeof p!=='object'||typeof p.name!=='string'||!p.weeks||typeof p.weeks!=='object')return false;
+  const ks=Object.keys(p.weeks); if(!ks.length)return false;
+  return ks.every(k=>p.weeks[k]&&p.weeks[k].days&&typeof p.weeks[k].days==='object');
+}
+function mergeOverviewDefaults(){
+  if(!activeProgram||activeProgram.name!==DEFAULT_PROGRAM.name)return;
+  let changed=false;
+  Object.keys(activeProgram.weeks).forEach(k=>{
+    const W=activeProgram.weeks[k],D=DEFAULT_PROGRAM.weeks[k];
+    if(W&&!W.ov&&D&&D.ov){W.ov=clone(D.ov);changed=true;}
+  });
+  if(changed)saveKey('program',activeProgram);
+}
+/* ---------- init ---------- */
+function logHasWork(){
+  return Object.values(workoutLog).some(day=>Array.isArray(day)&&day.some(e=>e&&((Array.isArray(e.sets)&&e.sets.some(s=>s&&(s.done||s.skipped||s.w||s.r)))||e.done)));
+}
+(async function init(){
+  if(hydratedLocalNewer&&cloudReady())queueSync();
+  const storedProg=await loadKey('program',null);
+  workoutLog=await loadKey('workout-log',{});
+  bodyWeights=await loadKey('body-weights',[]);
+  bodyGlucose=await loadKey('body-glucose',[]);
+  archives=await loadKey('archives',[]);
+  const savedTheme=await loadKey('theme','dark');
+  if(validProgram(storedProg)){
+    const stale=storedProg.name===DEFAULT_PROGRAM.name&&(storedProg.rev||0)<(DEFAULT_PROGRAM.rev||0);
+    if(stale&&!logHasWork()){
+      activeProgram=clone(DEFAULT_PROGRAM);workoutLog={};
+      saveKey('program',activeProgram);saveKey('workout-log',workoutLog);
+    }else{activeProgram=storedProg;}
+  }else{activeProgram=clone(DEFAULT_PROGRAM);saveKey('program',activeProgram);}
+  applyTheme(savedTheme==='light'?'light':'dark');
+  curWeek=currentCalendarWeek();
+  mergeOverviewDefaults();
+  migrateLog();
+  document.getElementById('brandsub').textContent=activeProgram.name;
+  evalBroken();
+  renderTrain(); renderBody(); renderData();
+})();
+const BLOCK_START='2026-09-07'; /* Week 1 Monday */
+function weekMonday(w){const ws=weeksList();const i=ws.indexOf(w);return shiftDate(BLOCK_START,(i>=0?i:(w-1))*7);}
+function dayISO(w,d){return shiftDate(weekMonday(w),DAYS.indexOf(d));}
+function currentCalendarWeek(){
+  const start=new Date(BLOCK_START+'T00:00:00');
+  const wkNum=Math.floor((new Date()-start)/(7*24*3600*1000))+1;
+  const ws=weeksList();
+  if(!ws.length)return 1;
+  if(wkNum<ws[0])return ws[0];
+  if(wkNum>ws[ws.length-1])return ws[ws.length-1];
+  return wkNum;
+}
+let curTheme='dark';
+function applyTheme(t){
+  curTheme=(t==='light')?'light':'dark';
+  document.documentElement.classList.toggle('light',curTheme==='light');
+  const btn=document.getElementById('themebtn');
+  if(btn)btn.textContent=curTheme==='light'?'🌙':'☀️';
+}
+function toggleTheme(){
+  applyTheme(curTheme==='light'?'dark':'light');
+  saveKey('theme',curTheme);
+  if(document.getElementById('view-plan').classList.contains('active'))renderPlan();
+  if(document.getElementById('view-body').classList.contains('active'))renderBody();
+}
+function switchView(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
+  if(v==='data')renderData();
+  if(v==='plan')renderPlan();
+  if(v==='body')renderBody();
+}
+/* ---------- date helpers ---------- */
+function isoToday(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtDate(iso){const d=new Date(iso+'T12:00:00');return{dd:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),dw:d.toLocaleDateString('en-US',{weekday:'long'})};}
+function shiftDate(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function uid(){return Math.random().toString(36).slice(2,9);}
+/* ---------- PLAN ---------- */
+function planVol(w,idx,total){const o=weekOv(w);if(o&&typeof o.vol==='number')return o.vol;return Math.round(40+(idx/Math.max(1,total-1))*55);}
+function planRpe(w,idx,total){const o=weekOv(w);if(o&&typeof o.rpe==='number')return o.rpe;return +(6.5+(idx/Math.max(1,total-1))*2).toFixed(1);}
+function planMeta(w){const o=weekOv(w);if(o&&(o.volL||o.rpeL))return [o.volL,o.rpeL].filter(Boolean).join(' · ');return metaS(w);}
+function scheduleLine(w,d){
+  const day=dayOf(w,d);if(!day)return null;
+  let content,mod;
+  if(day.t==='cardio'){content=day.note||day.title;mod=day.title;}
+  else{
+    content=(day.ex||[]).map(e=>{const p=e.n.split('|');return p[0]+(p[1]==='FST'?' FST':'')+' '+e.t.replace('|FST','');}).join(', ');
+    mod=day.title;
+  }
+  return {d,content,mod};
+}
+function renderPlan(){
+  const wl=weeksList(),total=wl.length;
+  if(planSel>=total)planSel=0;
+  const phases=[];
+  wl.forEach(w=>{const ph=phaseN(w),ac=phaseC(w);if(ph&&!phases.some(p=>p.ph===ph))phases.push({ph,ac});});
+  document.getElementById('plan-legend').innerHTML=phases.map(p=>`<span><i class="plan-sw" style="background:${p.ac}"></i>${p.ph}</span>`).join('');
+  const cardsEl=document.getElementById('plan-cards');
+  cardsEl.innerHTML=wl.map((w,i)=>{
+    const ac=phaseC(w),vol=planVol(w,i,total);
+    return `<div class="plan-card${i===planSel?' on':''}" data-i="${i}" style="border-top-color:${ac}">
+      <div class="plan-wn">Week ${w}</div><div class="plan-wl">${metaL(w)}</div>
+      <div class="plan-track"><div class="plan-fill" style="width:${vol}%;background:${ac}"></div></div>
+      <div class="plan-meta">${planMeta(w)}</div></div>`;
+  }).join('');
+  cardsEl.querySelectorAll('.plan-card').forEach(el=>el.onclick=()=>{planSel=+el.dataset.i;renderPlan();});
+  const w=wl[planSel],ac=phaseC(w),o=weekOv(w);
+  const rows=DAYS.map(d=>scheduleLine(w,d)).filter(Boolean)
+    .map(r=>`<div class="plan-row"><div class="plan-day">${r.d}</div><div class="plan-rc">${r.content}</div><div class="plan-mod">${r.mod}</div></div>`).join('');
+  let badges='';
+  if(o&&o.badges&&o.badges.length){
+    const bg=hexA(ac,0.16);
+    badges=`<div class="plan-badges">${o.badges.map(b=>`<span class="plan-badge" style="background:${bg};color:${ac}">${b}</span>`).join('')}</div>`;
+  }
+  const sub=(o&&o.sub)||metaS(w)||'';
+  const coach=(o&&o.coach)?`<div class="plan-coach">${o.coach}</div>`:'';
+  document.getElementById('plan-panel').innerHTML=
+    `<div class="plan-phase">${phaseN(w)}</div>
+     <div class="plan-title">Week ${w}: ${metaL(w)}</div>
+     ${sub?`<div class="plan-sub">${sub}</div>`:''}
+     ${badges}
+     <div class="plan-schedh">Daily schedule</div>${rows}${coach}`;
+  buildPlanChart(wl,total);
+}
+function buildPlanChart(wl,total){
+  const box=document.getElementById('qaChart');
+  if(!box)return;
+  if(typeof window.Chart==='undefined'){setTimeout(()=>{const l=weeksList();buildPlanChart(l,l.length);},350);return;}
+  const vols=wl.map((w,i)=>planVol(w,i,total));
+  const rpes=wl.map((w,i)=>planRpe(w,i,total));
+  const cs=getComputedStyle(document.documentElement);
+  const volC=(cs.getPropertyValue('--accent')||'#2dd6c1').trim();
+  const rpeC='#e0992a';
+  const dark=curTheme!=='light';
+  const grid=dark?'rgba(255,255,255,.10)':'rgba(0,0,0,.08)';
+  const tick=dark?'rgba(255,255,255,.6)':'rgba(0,0,0,.55)';
+  if(planChart){planChart.destroy();planChart=null;}
+  planChart=new Chart(box,{
+    data:{labels:wl.map(w=>'W'+w),datasets:[
+      {type:'line',label:'Volume %',data:vols,yAxisID:'y',borderColor:volC,backgroundColor:hexA(volC,0.12),borderWidth:2.5,tension:.4,fill:true,pointRadius:3.5,pointBackgroundColor:volC},
+      {type:'line',label:'RPE',data:rpes,yAxisID:'y1',borderColor:rpeC,borderWidth:2,borderDash:[6,4],tension:.3,fill:false,pointRadius:3.5,pointStyle:'rectRot',pointBackgroundColor:rpeC}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y1'?'RPE '+c.parsed.y:'Volume '+c.parsed.y+'%'}}},
+      scales:{
+        y:{position:'left',min:0,max:115,ticks:{color:volC,callback:v=>v+'%',stepSize:20,font:{size:10}},grid:{color:grid}},
+        y1:{position:'right',min:0,max:10,ticks:{color:rpeC,callback:v=>'RPE '+v,stepSize:2,font:{size:10}},grid:{drawOnChartArea:false}},
+        x:{ticks:{color:tick,font:{size:11}},grid:{color:grid}}
+      }}
+  });
+}
+/* ---------- TRAIN ---------- */
+function setCount(target){const m=String(target).match(/^\s*(\d+)/);return m?Math.max(1,parseInt(m[1])):3;}
+function setTypeAbbr(t){return ({warmup:'WU',fst7:'FST7',myorep:'M',myorep_match:'MM',drop:'D'})[t]||'';}
+function ensureEx(key,exIdx,target){
+  if(!workoutLog[key])workoutLog[key]=[];
+  let e=workoutLog[key][exIdx];
+  if(!e||typeof e!=='object')e={};
+  if(!Array.isArray(e.sets)){
+    const n=setCount(target),oldDone=!!e.done,oldW=e.w||'',oldR=e.r||'',sets=[];
+    for(let i=0;i<n;i++)sets.push({w:i===0?oldW:'',r:i===0?oldR:'',rir:'',done:oldDone});
+    e={sets};
+  }
+  workoutLog[key][exIdx]=e;
+  return e;
+}
+function exIsDone(key,exIdx){
+  const e=workoutLog[key]&&workoutLog[key][exIdx];
+  return !!(e&&Array.isArray(e.sets)&&e.sets.length&&e.sets.every(s=>s.done||s.skipped));
+}
+function migrateLog(){
+  weeksList().forEach(w=>{
+    DAYS.forEach(d=>{
+      const day=dayOf(w,d),key=w+'-'+d;
+      if(!day||day.t!=='lift'||!workoutLog[key])return;
+      day.ex.forEach((e,i)=>{if(workoutLog[key][i])ensureEx(key,i,e.t);});
+    });
+  });
+}
+function dayComplete(w,d){
+  const day=dayOf(w,d),key=w+'-'+d,log=workoutLog[key]||[];
+  if(!day)return false;
+  if(day.t==='cardio')return !!(log[0]&&log[0].done);
+  return !!(day.ex&&day.ex.length&&day.ex.every((e,i)=>exIsDone(key,i)));
+}
+function renderTrain(){
+  const pills=document.getElementById('weekpills');
+  pills.innerHTML='';
+  weeksList().forEach(w=>{
+    const td=trainDaysOf(w);
+    let done=0; td.forEach(d=>{if(dayComplete(w,d))done++;});
+    let dots='';for(let i=0;i<td.length;i++)dots+=`<i class="${i<done?'on':''}"></i>`;
+    const el=document.createElement('div');
+    el.className='wpill'+(w===curWeek?' active':'');
+    el.style.borderTopColor=phaseC(w);
+    el.innerHTML=`<div class="wn">Wk ${w}</div><div class="wl">${metaL(w)}</div><div class="wp">${dots}</div>`;
+    el.onclick=()=>{curWeek=w;openDay=null;renderTrain();};
+    pills.appendChild(el);
+  });
+  const pb=document.getElementById('phasebanner');
+  pb.style.borderLeftColor=phaseC(curWeek);
+  pb.innerHTML=`<span class="pt">Week ${curWeek} · ${metaL(curWeek)}</span><span class="pd">${phaseN(curWeek)}<br>${metaS(curWeek)}</span>`;
+  const td=trainDaysOf(curWeek);
+  let totalDone=0; td.forEach(d=>{if(dayComplete(curWeek,d))totalDone++;});
+  document.getElementById('wkproglbl').textContent=totalDone+'/'+td.length+' days';
+  document.getElementById('wkprogfill').style.width=(td.length?totalDone/td.length*100:0)+'%';
+  const list=document.getElementById('daylist');
+  list.innerHTML='';
+  td.forEach(d=>{
+    const day=dayOf(curWeek,d);
+    const key=curWeek+'-'+d;
+    const isDone=dayComplete(curWeek,d);
+    const card=document.createElement('div');
+    card.className='day';
+    let cnt='';
+    if(day.t==='lift'){
+      let ed=0; day.ex.forEach((e,i)=>{if(exIsDone(key,i))ed++;});
+      cnt=`<span class="day-sub">${ed}/${day.ex.length} done</span>`;
+    }else{
+      cnt=`<span class="day-sub">${isDone?'Complete':'Conditioning'}</span>`;
+    }
+    const tagClass=isDone?'done':day.t;
+    const isOpen=openDay===d;
+    const dISO=dayISO(curWeek,d);
+    const isToday=dISO===isoToday();
+    if(isToday)card.className='day today';
+    card.innerHTML=`
+      <div class="day-head">
+        <span class="daytag ${tagClass}">${d}</span>
+        <div class="daymeta">
+          <span class="day-title">${day.title}</span>
+          <span class="day-date">${fmtDate(dISO).dd}${isToday?' · Today':''}</span>
+        </div>
+        ${cnt}
+        <span class="chev ${isOpen?'open':''}">▾</span>
+      </div>
+      <div class="day-body ${isOpen?'open':''}"></div>`;
+    card.querySelector('.day-head').onclick=()=>{openDay=isOpen?null:d;renderTrain();};
+    if(isOpen) buildDayBody(card.querySelector('.day-body'),curWeek,d,day,key);
+    list.appendChild(card);
+  });
+}
+/* ---- next-session weight suggestion (from the prior week's same exercise) ---- */
+function bestSetOf(entry){
+  if(!entry||!Array.isArray(entry.sets))return null;
+  let best=null;
+  entry.sets.forEach(s=>{
+    if(s.skipped||s.type==='warmup')return;
+    const w=parseFloat(s.w),r=parseInt(s.r);
+    if(!(w>0)||!(r>0))return;
+    if(!best||w>best.w||(w===best.w&&r>best.r))best={w,r};
+  });
+  return best;
+}
+function prevTopSet(w,d,i){
+  const ws=weeksList(),idx=ws.indexOf(w);
+  if(idx<=0)return null;
+  const pw=ws[idx-1];
+  const pday=dayOf(pw,d),cday=dayOf(w,d);
+  if(!pday||!pday.ex||!cday||!cday.ex||!cday.ex[i])return null;
+  const nm=cday.ex[i].n.split('|')[0];
+  let pi=-1;
+  pday.ex.forEach((e,j)=>{if(pi<0&&e.n.split('|')[0]===nm)pi=j;});
+  if(pi<0)return null;
+  const log=workoutLog[pw+'-'+d];
+  const best=bestSetOf(log&&log[pi]);
+  return best?{best,week:pw}:null;
+}
+function topRep(target){
+  let m=String(target).match(/(\d+)\s*-\s*(\d+)/);
+  if(m)return parseInt(m[2]);
+  m=String(target).match(/[×x]\s*(\d+)/);
+  return m?parseInt(m[1]):null;
+}
+function suggestWeight(target,prev){
+  if(!prev)return null;
+  const p=prev.best,top=topRep(target);
+  if(top&&p.r>=top){
+    const inc=p.w>=60?5:2.5;
+    return {w:Math.round((p.w+inc)*2)/2,note:'add '+inc+' lb',prev:p};
+  }
+  return {w:p.w,note:'hold, beat '+p.r+' reps',prev:p};
+}
+function buildDayBody(body,w,d,day,key){
+  if(!workoutLog[key])workoutLog[key]=[];
+  const log=workoutLog[key];
+  if(day.t==='cardio'){
+    const done=!!(log[0]&&log[0].done);
+    body.innerHTML=`<div class="cardio-note">${day.note||''}</div>`;
+    const row=document.createElement('div');
+    row.className='exrow';row.style.borderTop='1px solid var(--line)';row.style.marginTop='2px';
+    row.innerHTML=`<div class="exinfo"><div class="exn">Mark session complete</div></div>`;
+    const chk=document.createElement('div');
+    chk.className='chk'+(done?' on':'');
+    chk.innerHTML='✓';
+    chk.onclick=()=>{log[0]={done:!done};commitWorkout();};
+    row.appendChild(chk);body.appendChild(row);
+    return;
+  }
+  day.ex.forEach((e,i)=>{
+    const E=ensureEx(key,i,e.t);
+    const parts=e.n.split('|');
+    const nm=parts[0]+(parts[1]==='FST'?' <span class="fst">FST-7</span>':'');
+    const block=document.createElement('div');
+    block.className='exblock';
+    block.innerHTML=`
+      <div class="exhead">
+        <div class="exn">${nm}</div>
+        <div class="exright">
+          <span class="extarget">Target ${e.t.replace('|FST','')}</span>
+          <button class="kebab" aria-label="Exercise options">⋮</button>
+        </div>
+        <div class="exmenu">
+          <button data-act="note">📝 ${e.note?'Edit note':'Add note'}</button>
+          <button data-act="addset">＋ Add set</button>
+          <button data-act="skip">⊘ Skip remaining sets</button>
+          <button data-act="up">↑ Move up</button>
+          <button data-act="down">↓ Move down</button>
+          <button data-act="remove" class="danger">🗑 Remove exercise</button>
+        </div>
+      </div>`;
+    const kebab=block.querySelector('.kebab');
+    const menu=block.querySelector('.exmenu');
+    kebab.onclick=(ev)=>{
+      ev.stopPropagation();
+      const wasOpen=menu.classList.contains('open');
+      document.querySelectorAll('.exmenu.open').forEach(m=>m.classList.remove('open'));
+      if(!wasOpen)menu.classList.add('open');
+    };
+    menu.querySelectorAll('button').forEach(b=>{
+      b.onclick=(ev)=>{
+        ev.stopPropagation();
+        menu.classList.remove('open');
+        const act=b.dataset.act;
+        if(act==='addset'){E.sets.push({w:'',r:'',rir:'',done:false});commitWorkout();}
+        else if(act==='skip'){skipRemaining(key,i);}
+        else if(act==='up'){moveExercise(w,d,i,-1);}
+        else if(act==='down'){moveExercise(w,d,i,1);}
+        else if(act==='remove'){removeExercise(w,d,i);}
+        else if(act==='note'){openNoteModal(w,d,i);}
+      };
+    });
+    if(e.note&&e.notePinned){
+      const nb=document.createElement('div');
+      nb.className='exnote';
+      nb.innerHTML='<span class="pin">📌</span>';
+      const nt=document.createElement('span');
+      nt.className='ntxt';nt.textContent=e.note;
+      nb.appendChild(nt);
+      block.appendChild(nb);
+    }
+    const sug=suggestWeight(e.t,prevTopSet(w,d,i));
+    if(sug){
+      const h=document.createElement('div');
+      h.className='exsug';
+      h.innerHTML=`<span class="sgico">↗</span><span class="sgtxt">Last week <b>${sug.prev.w} lb × ${sug.prev.r}</b> · try <b>${sug.w} lb</b> <span class="sgnote">(${sug.note})</span></span>`;
+      block.appendChild(h);
+    }
+    const cols=document.createElement('div');
+    cols.className='setcols';
+    cols.innerHTML='<span>Set</span><span>Weight</span><span>Reps</span><span>RIR</span><span>Done</span>';
+    block.appendChild(cols);
+    E.sets.forEach((s,si)=>{
+      const row=document.createElement('div');
+      row.className='setrow'+(s.done?' done':'')+(s.skipped?' skipped':'');
+      const numEl=document.createElement('div');
+      numEl.className='setnum';
+      const ab=setTypeAbbr(s.type);
+      numEl.innerHTML=`<span class="snn">${si+1}</span>`+(ab?`<span class="stype">${ab}</span>`:'');
+      const wIn=document.createElement('input');
+      wIn.className='setin';wIn.type='number';wIn.inputMode='decimal';wIn.placeholder=(sug&&s.type!=='warmup')?String(sug.w):'lb';wIn.value=s.w;
+      const rIn=document.createElement('input');
+      rIn.className='setin';rIn.type='text';rIn.inputMode='numeric';rIn.placeholder=s.skipped?'skip':'reps';rIn.value=s.r;
+      const rirIn=document.createElement('input');
+      rirIn.className='setin';rirIn.type='text';rirIn.inputMode='numeric';rirIn.placeholder='RIR';rirIn.value=s.rir||'';
+      wIn.oninput=()=>{s.w=wIn.value;commitWorkout(false);};
+      rIn.oninput=()=>{s.r=rIn.value;commitWorkout(false);};
+      rirIn.oninput=()=>{s.rir=rirIn.value;commitWorkout(false);};
+      const chk=document.createElement('div');
+      chk.className='chk sm'+(s.done?' on':'')+(s.skipped?' skip':'');
+      chk.textContent=s.skipped?'–':'✓';
+      chk.onclick=()=>{
+        if(s.skipped){s.skipped=false;s.done=true;}
+        else{s.done=!s.done;}
+        commitWorkout();
+      };
+      const sm=document.createElement('div');
+      sm.className='setmenu';
+      const cur=s.type||'regular';
+      const types=[['regular','Regular'],['warmup','Warm-up'],['fst7','FST-7'],['myorep','Myorep'],['myorep_match','Myorep Match'],['drop','Drop set']];
+      sm.innerHTML=`<div class="smsec">Set</div>
+        <button data-sa="addbelow">＋ Add set below</button>
+        <button data-sa="skip">⊘ ${s.skipped?'Unskip set':'Skip set'}</button>
+        <button data-sa="del" class="danger">🗑 Delete set</button>
+        <div class="smsec">Set type</div>`+
+        types.map(([v,l])=>`<button data-st="${v}" class="${cur===v?'active':''}">${l}</button>`).join('');
+      numEl.onclick=(ev)=>{
+        ev.stopPropagation();
+        const wasOpen=sm.classList.contains('open');
+        document.querySelectorAll('.exmenu.open,.setmenu.open').forEach(m=>m.classList.remove('open'));
+        if(!wasOpen)sm.classList.add('open');
+      };
+      sm.querySelectorAll('button').forEach(b=>{
+        b.onclick=(ev)=>{
+          ev.stopPropagation();sm.classList.remove('open');
+          if(b.dataset.sa==='addbelow'){E.sets.splice(si+1,0,{w:'',r:'',rir:'',done:false,type:'regular'});commitWorkout();}
+          else if(b.dataset.sa==='skip'){s.skipped=!s.skipped;if(s.skipped)s.done=false;commitWorkout();}
+          else if(b.dataset.sa==='del'){if(E.sets.length>1){E.sets.splice(si,1);commitWorkout();}else toast('Keep at least one set');}
+          else if(b.dataset.st){s.type=b.dataset.st;commitWorkout();}
+        };
+      });
+      row.append(numEl,wIn,rIn,rirIn,chk,sm);
+      block.appendChild(row);
+    });
+    const ctl=document.createElement('div');
+    ctl.className='setctl';
+    ctl.innerHTML=`<button class="setbtn add">+ set</button><button class="setbtn rm">− set</button>`;
+    ctl.querySelector('.add').onclick=()=>{E.sets.push({w:'',r:'',rir:'',done:false});commitWorkout();};
+    ctl.querySelector('.rm').onclick=()=>{if(E.sets.length>1){E.sets.pop();commitWorkout();}};
+    block.appendChild(ctl);
+    body.appendChild(block);
+  });
+  // ---- add exercise ----
+  const addWrap=document.createElement('div');
+  addWrap.className='addexwrap';
+  const open=!!addExOpen[key];
+  addWrap.innerHTML=`<button class="addbtn addex-btn">+ Add exercise</button>
+    <div class="addexform ${open?'open':''}">
+      <input class="finput ax-name" placeholder="Exercise name (e.g. Leg press)">
+      <input class="finput ax-target" placeholder="Target sets × reps (e.g. 3 × 12)">
+      <div class="formbtns">
+        <button class="btn-primary ax-save">Add</button>
+        <button class="btn-ghost ax-cancel">Cancel</button>
+      </div>
+    </div>`;
+  const axForm=addWrap.querySelector('.addexform');
+  addWrap.querySelector('.addex-btn').onclick=()=>{addExOpen[key]=!axForm.classList.contains('open');axForm.classList.toggle('open');};
+  addWrap.querySelector('.ax-cancel').onclick=()=>{addExOpen[key]=false;axForm.classList.remove('open');};
+  addWrap.querySelector('.ax-save').onclick=()=>{
+    const name=addWrap.querySelector('.ax-name').value.trim();
+    if(!name){toast('Name the exercise first');return;}
+    let target=addWrap.querySelector('.ax-target').value.trim();
+    if(!target)target='3 × 10';
+    addExOpen[key]=false;
+    addExercise(w,d,name,target);
+  };
+  body.appendChild(addWrap);
+}
+function commitProgram(){saveKey('program',activeProgram);}
+function moveExercise(w,d,i,dir){
+  const day=dayOf(w,d);if(!day||!day.ex)return;
+  const j=i+dir;if(j<0||j>=day.ex.length)return;
+  const key=w+'-'+d;
+  const log=workoutLog[key]||(workoutLog[key]=[]);
+  while(log.length<day.ex.length)log.push(undefined);
+  [day.ex[i],day.ex[j]]=[day.ex[j],day.ex[i]];
+  [log[i],log[j]]=[log[j],log[i]];
+  commitProgram();commitWorkout();
+}
+function removeExercise(w,d,i){
+  const day=dayOf(w,d);if(!day||!day.ex)return;
+  const nm=(day.ex[i]&&day.ex[i].n.split('|')[0])||'this exercise';
+  let ok=true;try{ok=window.confirm('Remove "'+nm+'" from '+day.title+'?');}catch(e){ok=true;}
+  if(ok===false)return;
+  day.ex.splice(i,1);
+  const key=w+'-'+d;
+  if(Array.isArray(workoutLog[key]))workoutLog[key].splice(i,1);
+  commitProgram();commitWorkout();
+}
+function addExercise(w,d,name,target){
+  const day=dayOf(w,d);if(!day)return;
+  if(!Array.isArray(day.ex))day.ex=[];
+  day.ex.push(ex(name,target));
+  commitProgram();commitWorkout();
+}
+function skipRemaining(key,i){
+  const e=workoutLog[key]&&workoutLog[key][i];
+  if(!e||!Array.isArray(e.sets))return;
+  let n=0;
+  e.sets.forEach(s=>{if(!s.done&&!s.skipped){s.skipped=true;n++;}});
+  commitWorkout();
+  if(n)toast(n+' set'+(n===1?'':'s')+' skipped');
+}
+let noteEditing=null;
+function openNoteModal(w,d,i){
+  const day=dayOf(w,d);if(!day||!day.ex||!day.ex[i])return;
+  noteEditing={w,d,i};
+  const e=day.ex[i];
+  document.getElementById('note-exname').textContent=e.n.split('|')[0];
+  document.getElementById('note-text').value=e.note||'';
+  const pinned=e.note?(e.notePinned!==false):true;
+  const pin=document.getElementById('note-pin');
+  pin.classList.toggle('on',pinned);pin.textContent=pinned?'✓':'';
+  document.getElementById('notemodal').classList.add('open');
+  setTimeout(()=>document.getElementById('note-text').focus(),60);
+}
+function closeNoteModal(){noteEditing=null;document.getElementById('notemodal').classList.remove('open');}
+function saveNote(){
+  if(!noteEditing)return;
+  const {w,d,i}=noteEditing;
+  const day=dayOf(w,d);
+  if(!day||!day.ex||!day.ex[i]){closeNoteModal();return;}
+  const txt=document.getElementById('note-text').value.trim();
+  const pinned=document.getElementById('note-pin').classList.contains('on');
+  if(!txt){delete day.ex[i].note;delete day.ex[i].notePinned;}
+  else{day.ex[i].note=txt;day.ex[i].notePinned=pinned;}
+  commitProgram();closeNoteModal();renderTrain();
+  toast(txt?'Note saved':'Note cleared');
+}
+function deleteNote(){
+  if(!noteEditing)return;
+  const {w,d,i}=noteEditing;
+  const day=dayOf(w,d);
+  if(day&&day.ex&&day.ex[i]){delete day.ex[i].note;delete day.ex[i].notePinned;commitProgram();}
+  closeNoteModal();renderTrain();
+  toast('Note deleted');
+}
+document.getElementById('note-pinrow').addEventListener('click',()=>{
+  const pin=document.getElementById('note-pin');
+  const on=!pin.classList.contains('on');
+  pin.classList.toggle('on',on);pin.textContent=on?'✓':'';
+});
+document.getElementById('notemodal').addEventListener('click',ev=>{if(ev.target.id==='notemodal')closeNoteModal();});
+function commitWorkout(rerender=true){
+  saveKey('workout-log',workoutLog);
+  if(rerender)renderTrain();
+}
+/* ---------- BODY: weight, photos, glucose ---------- */
+function setGSlot(s){
+  gSlot=s;
+  document.getElementById('bg-am').classList.toggle('on',s==='AM');
+  document.getElementById('bg-pm').classList.toggle('on',s==='PM');
+}
+document.getElementById('bw-photo').addEventListener('change',function(ev){
+  const f=ev.target.files&&ev.target.files[0];
+  if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=1000;
+      const sc=Math.min(1,MAX/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      pendingPhoto=cv.toDataURL('image/jpeg',0.72);
+      const btn=document.getElementById('bw-photobtn');
+      btn.textContent='📷 Photo attached ✓';btn.classList.add('hasphoto');
+    };
+    img.onerror=()=>toast('Could not read that image');
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+  ev.target.value='';
+});
+function addWeight(){
+  const w=parseFloat(document.getElementById('bw-weight').value);
+  if(!w||w<50||w>800){toast('Enter a weight first');return;}
+  const date=document.getElementById('bw-date').value||isoToday();
+  bodyWeights.push({id:uid(),date,w:Math.round(w*10)/10,photo:pendingPhoto||null});
+  bodyWeights.sort((a,b)=>a.date<b.date?-1:1);
+  pendingPhoto=null;
+  document.getElementById('bw-weight').value='';
+  const btn=document.getElementById('bw-photobtn');
+  btn.textContent='📷 Add photo';btn.classList.remove('hasphoto');
+  saveKey('body-weights',bodyWeights);
+  renderBody();
+  toast('Check-in saved');
+}
+function tombstone(id){const t=Array.isArray(mem['deleted'])?mem['deleted'].slice():[];if(!t.includes(id))t.push(id);mem['deleted']=t.slice(-500);}
+function removeWeight(id){tombstone(id);bodyWeights=bodyWeights.filter(x=>x.id!==id);saveKey('body-weights',bodyWeights);renderBody();}
+function addGlucose(){
+  const v=parseInt(document.getElementById('bg-value').value);
+  if(!v||v<20||v>600){toast('Enter a reading first');return;}
+  const date=document.getElementById('bg-date').value||isoToday();
+  bodyGlucose.push({id:uid(),date,slot:gSlot,v});
+  bodyGlucose.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:(a.slot===b.slot?0:(a.slot==='AM'?-1:1))));
+  document.getElementById('bg-value').value='';
+  saveKey('body-glucose',bodyGlucose);
+  renderBody();
+}
+function removeGlucose(id){tombstone(id);bodyGlucose=bodyGlucose.filter(x=>x.id!==id);saveKey('body-glucose',bodyGlucose);renderBody();}
+function openPhotoModal(id){
+  const e=bodyWeights.find(x=>x.id===id);
+  if(!e||!e.photo)return;
+  document.getElementById('photomodal-img').src=e.photo;
+  document.getElementById('photomodal-meta').textContent=fmtDate(e.date).dd+' · '+e.w+' lb';
+  document.getElementById('photomodal').classList.add('open');
+}
+function closePhotoModal(){document.getElementById('photomodal').classList.remove('open');}
+document.getElementById('photomodal').addEventListener('click',ev=>{if(ev.target.id==='photomodal')closePhotoModal();});
+function armDelete(btn,fn){
+  if(btn.dataset.arm){fn();return;}
+  btn.dataset.arm='1';btn.style.color='#ff6b6b';
+  setTimeout(()=>{if(btn.isConnected){delete btn.dataset.arm;btn.style.color='';}},2500);
+}
+function renderBody(){
+  const dEl=document.getElementById('bw-date');if(dEl&&!dEl.value)dEl.value=isoToday();
+  const gd=document.getElementById('bg-date');if(gd&&!gd.value)gd.value=isoToday();
+  const sg=document.getElementById('bstatgrid');
+  const n=bodyWeights.length;
+  const latest=n?bodyWeights[n-1]:null;
+  const first=n?bodyWeights[0]:null;
+  const prev=n>1?bodyWeights[n-2]:null;
+  const tot=(latest&&n>1)?(latest.w-first.w):null;
+  const wkd=(latest&&prev)?(latest.w-prev.w):null;
+  const revG=[...bodyGlucose].reverse();
+  const lastAM=revG.find(g=>g.slot==='AM');
+  const lastPM=revG.find(g=>g.slot==='PM');
+  const delta=d=>{if(d==null)return '—';const r=Math.round(d*10)/10;return (r>0?'+':'')+r;};
+  sg.innerHTML=`
+    <div class="bstat"><div class="bv">${latest?latest.w:'—'}</div><div class="bl">Weight (lb)</div><div class="bd" style="color:${wkd!=null&&wkd<=0?'var(--accent)':'var(--txt3)'}">${wkd!=null?delta(wkd)+' vs last':'first check-in sets baseline'}</div></div>
+    <div class="bstat"><div class="bv">${tot!=null?delta(tot):'—'}</div><div class="bl">Since start (lb)</div><div class="bd">${n} check-in${n===1?'':'s'}</div></div>
+    <div class="bstat"><div class="bv">${lastAM?lastAM.v:'—'}<span class="bsm">/</span>${lastPM?lastPM.v:'—'}</div><div class="bl">Glucose AM / PM</div><div class="bd">latest readings</div></div>`;
+  renderWeightList();
+  renderGlucoseList();
+  buildWChart();
+  buildGChart();
+}
+function renderWeightList(){
+  const el=document.getElementById('bw-list');
+  el.innerHTML='';
+  if(!bodyWeights.length){el.innerHTML='<div class="empty">No check-ins yet — the first one sets your baseline.</div>';return;}
+  const rows=[...bodyWeights].reverse();
+  const shown=bwShowAll?rows:rows.slice(0,6);
+  shown.forEach(e=>{
+    const i=bodyWeights.indexOf(e);
+    const prevE=i>0?bodyWeights[i-1]:null;
+    const d=prevE?(e.w-prevE.w):null;
+    const row=document.createElement('div');
+    row.className='bw-row';
+    row.innerHTML=`${e.photo?'<img class="bw-thumb" alt="Progress photo">':'<div class="bw-nothumb">—</div>'}
+      <div class="bw-info"><div class="bw-w">${e.w} lb</div><div class="bw-d">${fmtDate(e.date).dw} · ${fmtDate(e.date).dd}</div></div>
+      <span class="bw-delta" style="color:${d==null?'var(--txt3)':(d<=0?'var(--accent)':'#e0992a')}">${d==null?'baseline':(d>0?'+':'')+(Math.round(d*10)/10)}</span>
+      <button class="brem" aria-label="Delete check-in">×</button>`;
+    const img=row.querySelector('.bw-thumb');
+    if(img){img.src=e.photo;img.onclick=()=>openPhotoModal(e.id);}
+    const del=row.querySelector('.brem');
+    del.onclick=()=>armDelete(del,()=>removeWeight(e.id));
+    el.appendChild(row);
+  });
+  if(rows.length>6){
+    const mb=document.createElement('button');
+    mb.className='bmore';
+    mb.textContent=bwShowAll?'Show fewer':'Show all '+rows.length;
+    mb.onclick=()=>{bwShowAll=!bwShowAll;renderWeightList();};
+    el.appendChild(mb);
+  }
+}
+function renderGlucoseList(){
+  const el=document.getElementById('bg-list');
+  el.innerHTML='';
+  if(!bodyGlucose.length){el.innerHTML='<div class="empty">No readings yet.</div>';return;}
+  const rows=[...bodyGlucose].reverse();
+  const shown=bgShowAll?rows:rows.slice(0,8);
+  shown.forEach(g=>{
+    const row=document.createElement('div');
+    row.className='bg-row';
+    row.innerHTML=`<span class="bg-slot ${g.slot==='AM'?'am':'pm'}">${g.slot}</span>
+      <span class="bg-val">${g.v}</span>
+      <span class="bg-date">${fmtDate(g.date).dw} · ${fmtDate(g.date).dd}</span>
+      <button class="brem" aria-label="Delete reading">×</button>`;
+    const del=row.querySelector('.brem');
+    del.onclick=()=>armDelete(del,()=>removeGlucose(g.id));
+    el.appendChild(row);
+  });
+  if(rows.length>8){
+    const mb=document.createElement('button');
+    mb.className='bmore';
+    mb.textContent=bgShowAll?'Show fewer':'Show all '+rows.length;
+    mb.onclick=()=>{bgShowAll=!bgShowAll;renderGlucoseList();};
+    el.appendChild(mb);
+  }
+}
+function chartInk(){
+  const cs=getComputedStyle(document.documentElement);
+  const ac=(cs.getPropertyValue('--accent')||'#2dd6c1').trim();
+  const dark=curTheme!=='light';
+  return {ac,pm:dark?'#e0992a':'#b87708',grid:dark?'rgba(255,255,255,.10)':'rgba(0,0,0,.08)',tick:dark?'rgba(255,255,255,.6)':'rgba(0,0,0,.55)'};
+}
+function buildWChart(){
+  const box=document.getElementById('wChart');
+  if(!box)return;
+  if(typeof window.Chart==='undefined'){setTimeout(buildWChart,350);return;}
+  if(wChart){wChart.destroy();wChart=null;}
+  const wrap=box.parentElement;
+  if(bodyWeights.length<2){wrap.style.display='none';return;}
+  wrap.style.display='';
+  const c=chartInk();
+  wChart=new Chart(box,{type:'line',
+    data:{labels:bodyWeights.map(e=>fmtDate(e.date).dd),
+      datasets:[{label:'Weight',data:bodyWeights.map(e=>e.w),borderColor:c.ac,backgroundColor:hexA(c.ac,0.12),borderWidth:2.5,tension:.35,fill:true,pointRadius:4,pointBackgroundColor:c.ac}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.parsed.y+' lb'}}},
+      scales:{y:{grace:'12%',ticks:{color:c.tick,font:{size:10}},grid:{color:c.grid}},
+              x:{ticks:{color:c.tick,font:{size:10},maxTicksLimit:8},grid:{display:false}}}}});
+}
+function buildGChart(){
+  const box=document.getElementById('gChart');
+  if(!box)return;
+  if(typeof window.Chart==='undefined'){setTimeout(buildGChart,350);return;}
+  if(gChart){gChart.destroy();gChart=null;}
+  const wrap=box.parentElement;
+  const leg=document.querySelector('.glegend');
+  if(bodyGlucose.length<2){wrap.style.display='none';if(leg)leg.style.display='none';return;}
+  wrap.style.display='';if(leg)leg.style.display='';
+  const byDate={};
+  bodyGlucose.forEach(g=>{
+    if(!byDate[g.date])byDate[g.date]={AM:[],PM:[]};
+    byDate[g.date][g.slot].push(g.v);
+  });
+  const dates=Object.keys(byDate).sort().slice(-14);
+  const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+  const c=chartInk();
+  gChart=new Chart(box,{type:'line',
+    data:{labels:dates.map(d=>fmtDate(d).dd),datasets:[
+      {label:'AM',data:dates.map(d=>avg(byDate[d].AM)),borderColor:c.ac,backgroundColor:c.ac,borderWidth:2.5,tension:.3,fill:false,pointRadius:4,pointBackgroundColor:c.ac,spanGaps:true},
+      {label:'PM',data:dates.map(d=>avg(byDate[d].PM)),borderColor:c.pm,backgroundColor:c.pm,borderWidth:2,borderDash:[6,4],tension:.3,fill:false,pointRadius:4,pointStyle:'rectRot',pointBackgroundColor:c.pm,spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.dataset.label+' '+x.parsed.y+' mg/dL'}}},
+      scales:{y:{grace:'12%',ticks:{color:c.tick,font:{size:10}},grid:{color:c.grid}},
+              x:{ticks:{color:c.tick,font:{size:10},maxTicksLimit:7},grid:{display:false}}}}});
+}
+/* ---------- DATA ---------- */
+function exportObject(){
+  return {app:"REBUILD",version:4,exportedAt:new Date().toISOString(),
+    program:activeProgram,workoutLog:workoutLog,bodyWeights:bodyWeights,bodyGlucose:bodyGlucose,archives:archives,deleted:Array.isArray(mem['deleted'])?mem['deleted']:[],logEpoch:mem['log-epoch']||''};
+}
+function renderData(){
+  updateStoreWarn();
+  updateSyncState();
+  document.getElementById('d-progname').textContent=activeProgram.name;
+  const wc=weeksList().length;
+  document.getElementById('d-progmeta').textContent=wc+' week'+(wc===1?'':'s');
+  document.getElementById('backup-text').value=JSON.stringify(exportObject(),null,2);
+  const al=document.getElementById('archlist');
+  if(!archives.length){
+    al.innerHTML='<div class="empty">No previous blocks yet — your first block is archived here when you load a new program.</div>';
+  }else{
+    al.innerHTML='';
+    archives.slice().reverse().forEach(a=>{
+      const dt=a.archivedAt?new Date(a.archivedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+      const row=document.createElement('div');
+      row.className='archrow';
+      row.innerHTML=`<span class="archtag">Block</span><span class="an">${a.name||'Training block'}</span><span class="ad">${dt}</span>`;
+      al.appendChild(row);
+    });
+  }
+}
+async function downloadBackup(){
+  const data=JSON.stringify(exportObject(),null,2);
+  const fname='rebuild-backup-'+isoToday()+'.json';
+  if(downloadsNS){
+    try{
+      await downloadsNS.save({filename:fname,data:data});
+      toast('Backup saved');
+      return;
+    }catch(e){
+      const c=e&&e.code;
+      if(c==='declined')return;
+      if(c==='rate_limited'){toast('A save prompt is already open — try again in a moment');return;}
+      /* fall through to blob attempt */
+    }
+  }
+  try{
+    const blob=new Blob([data],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=fname;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},150);
+    toast('Backup file downloaded');
+  }catch(e){
+    toast('Download blocked — copy the text instead');
+  }
+}
+function copyBackup(){
+  const ta=document.getElementById('backup-text');
+  ta.focus();ta.select();ta.setSelectionRange(0,999999);
+  let ok=false;
+  try{if(document.execCommand('copy'))ok=true;}catch(e){}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ta.value).then(()=>toast('Backup copied to clipboard')).catch(()=>{if(!ok)toast('Select the text and copy manually');});
+    if(ok)toast('Backup copied to clipboard');
+  }else{
+    toast(ok?'Backup copied to clipboard':'Select the text and copy manually');
+  }
+}
+function loadNewProgram(){
+  const raw=document.getElementById('prog-input').value.trim();
+  if(!raw){toast('Paste a program first');return;}
+  let parsed;
+  try{parsed=JSON.parse(raw);}catch(e){toast('That is not valid program code');return;}
+  const prog=(parsed&&parsed.weeks)?parsed:(parsed&&parsed.program?parsed.program:null);
+  if(!validProgram(prog)){toast('Program code is missing or malformed');return;}
+  archives.push({archivedAt:new Date().toISOString(),name:activeProgram.name,program:clone(activeProgram),workoutLog:clone(workoutLog)});
+  activeProgram=clone(prog);
+  workoutLog={};
+  curWeek=weeksList()[0]||1;
+  openDay=null;planSel=0;
+  saveKey('log-epoch',uid()+'-'+Date.now());
+  saveKey('archives',archives);
+  saveKey('program',activeProgram);
+  saveKey('workout-log',workoutLog);
+  document.getElementById('brandsub').textContent=activeProgram.name;
+  document.getElementById('prog-input').value='';
+  renderTrain();renderData();
+  switchView('train');
+  toast('New program loaded — previous block archived');
+}
+/* Merge: add what this device is missing, never remove or overwrite what it has */
+function mergeFromObject(parsed){
+  const added={w:0,g:0,s:0};
+  let changed=false;
+  const setHas=s=>!!(s&&(s.done||s.skipped||(s.w!==''&&s.w!=null)||(s.r!==''&&s.r!=null)));
+  /* deletion tombstones: an id deleted on any device stays deleted everywhere */
+  const tomb=new Set(Array.isArray(mem['deleted'])?mem['deleted']:[]);
+  if(Array.isArray(parsed.deleted)){
+    parsed.deleted.forEach(id=>{
+      if(!id||tomb.has(id))return;
+      tomb.add(id);
+      const bw=bodyWeights.length,bg=bodyGlucose.length;
+      bodyWeights=bodyWeights.filter(x=>x.id!==id);
+      bodyGlucose=bodyGlucose.filter(x=>x.id!==id);
+      if(bodyWeights.length!==bw||bodyGlucose.length!==bg)changed=true;
+    });
+  }
+  mem['deleted']=[...tomb].slice(-500);
+  if(Array.isArray(parsed.bodyWeights)){
+    const ids=new Set(bodyWeights.map(x=>x.id));
+    const keys=new Set(bodyWeights.map(x=>x.date+'|'+x.w));
+    parsed.bodyWeights.forEach(x=>{
+      if(!x||!x.id||tomb.has(x.id)||ids.has(x.id)||keys.has(x.date+'|'+x.w))return;
+      bodyWeights.push(clone(x));added.w++;changed=true;
+    });
+    bodyWeights.sort((a,b)=>a.date<b.date?-1:1);
+  }
+  if(Array.isArray(parsed.bodyGlucose)){
+    const ids=new Set(bodyGlucose.map(x=>x.id));
+    const keys=new Set(bodyGlucose.map(x=>x.date+'|'+x.slot+'|'+x.v));
+    parsed.bodyGlucose.forEach(x=>{
+      if(!x||!x.id||tomb.has(x.id)||ids.has(x.id)||keys.has(x.date+'|'+x.slot+'|'+x.v))return;
+      bodyGlucose.push(clone(x));added.g++;changed=true;
+    });
+    bodyGlucose.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:(a.slot===b.slot?0:(a.slot==='AM'?-1:1))));
+  }
+  const sameBlock=((parsed.logEpoch||'')===(mem['log-epoch']||''));
+  if(sameBlock&&parsed.workoutLog&&typeof parsed.workoutLog==='object'){
+    Object.keys(parsed.workoutLog).forEach(key=>{
+      const inc=parsed.workoutLog[key];
+      if(!Array.isArray(inc))return;
+      if(!workoutLog[key])workoutLog[key]=[];
+      inc.forEach((ie,i)=>{
+        if(!ie)return;
+        const cur=workoutLog[key][i];
+        if(!Array.isArray(ie.sets)){
+          if(ie.done&&!(cur&&cur.done)){workoutLog[key][i]={done:true};added.s++;changed=true;}
+          return;
+        }
+        if(!cur||!Array.isArray(cur.sets)){
+          const c=clone(ie);workoutLog[key][i]=c;
+          const n=c.sets.filter(setHas).length;added.s+=n;if(n)changed=true;
+          return;
+        }
+        ie.sets.forEach((s,si)=>{
+          if(!setHas(s))return;
+          while(cur.sets.length<=si)cur.sets.push({w:'',r:'',rir:'',done:false});
+          if(!setHas(cur.sets[si])){cur.sets[si]=clone(s);added.s++;changed=true;}
+        });
+      });
+    });
+  }
+  if(Array.isArray(parsed.archives)){
+    const have=new Set((archives||[]).map(a=>a.archivedAt));
+    parsed.archives.forEach(a=>{if(a&&a.archivedAt&&!have.has(a.archivedAt)){archives.push(clone(a));changed=true;}});
+  }
+  mem['body-weights']=bodyWeights;mem['body-glucose']=bodyGlucose;mem['workout-log']=workoutLog;mem['archives']=archives;
+  if(changed){migrateLog();renderTrain();renderBody();renderData();}
+  return added;
+}
+function mergeBackup(){
+  const raw=document.getElementById('restore-input').value.trim();
+  if(!raw){toast('Paste a backup first');return;}
+  let parsed;
+  try{parsed=JSON.parse(raw);}catch(e){toast('That is not valid backup text');return;}
+  if(!parsed||(!parsed.workoutLog&&!parsed.bodyWeights&&!parsed.bodyGlucose)){toast('This does not look like a REBUILD backup');return;}
+  const added=mergeFromObject(parsed);
+  saveKey('deleted',mem['deleted']||[]);
+  saveKey('body-weights',bodyWeights);
+  saveKey('body-glucose',bodyGlucose);
+  saveKey('workout-log',workoutLog);
+  saveKey('archives',archives);
+  document.getElementById('restore-input').value='';
+  const total=added.w+added.g+added.s;
+  toast(total?`Merged ${added.w} weigh-in${added.w===1?'':'s'}, ${added.g} reading${added.g===1?'':'s'}, ${added.s} set${added.s===1?'':'s'}`:'Nothing new to merge — already up to date');
+}
+function restoreBackup(){
+  const raw=document.getElementById('restore-input').value.trim();
+  if(!raw){toast('Paste a backup first');return;}
+  let parsed;
+  try{parsed=JSON.parse(raw);}catch(e){toast('That is not valid backup text');return;}
+  if(!parsed||(!parsed.program&&!parsed.workoutLog&&!parsed.bodyWeights)){toast('This does not look like a REBUILD backup');return;}
+  if(validProgram(parsed.program))activeProgram=clone(parsed.program);
+  workoutLog=parsed.workoutLog&&typeof parsed.workoutLog==='object'?clone(parsed.workoutLog):{};
+  bodyWeights=Array.isArray(parsed.bodyWeights)?clone(parsed.bodyWeights):[];
+  bodyGlucose=Array.isArray(parsed.bodyGlucose)?clone(parsed.bodyGlucose):[];
+  archives=Array.isArray(parsed.archives)?clone(parsed.archives):[];
+  mem['deleted']=Array.isArray(parsed.deleted)?clone(parsed.deleted):[];
+  if(parsed.logEpoch)mem['log-epoch']=parsed.logEpoch;
+  curWeek=weeksList()[0]||1;openDay=null;planSel=0;
+  mergeOverviewDefaults();
+  saveKey('program',activeProgram);saveKey('workout-log',workoutLog);
+  saveKey('body-weights',bodyWeights);saveKey('body-glucose',bodyGlucose);saveKey('archives',archives);
+  document.getElementById('brandsub').textContent=activeProgram.name;
+  document.getElementById('restore-input').value='';
+  migrateLog();
+  renderTrain();renderBody();renderData();
+  switchView('train');
+  toast('Backup restored');
+}
+</script>
+
+</body>
+</html>
