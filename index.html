@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="REBUILD">
 <link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>REBUILD Recomp Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -634,7 +635,8 @@ const DEFAULT_PROGRAM={
 const mem={};
 const LSKEY='rebuild-recomp-v2';
 const CLOUDKEY='rebuild-cloud';
-let storeBroken=false, localAvail=false, hydratedLocalNewer=false;
+let storeBroken=false, localAvail=false, pendingRemote=null;
+const syncInfo={push:0,pull:0,err:''};
 let cloud=null;              /* {url,key} once configured in the Data tab */
 let cloudOn=false;           /* true after a successful cloud read or write */
 let downloadsNS=null;        /* standalone build: the browser's own download is used */
@@ -663,11 +665,14 @@ const hydrated=(async()=>{
   if(cloudReady()){try{remote=await cloudGet();cloudOn=true;}catch(e){cloudOn=false;}}
   const rOk=okShape(remote),lOk=okShape(local);
   let chosen=null;
-  if(rOk&&lOk)chosen=((local.updatedAt||0)>(remote.updatedAt||0))?local:remote;
+  if(rOk&&lOk){
+    if(keysHaveData(local.keys)){chosen=local;pendingRemote=remote;}
+    else chosen=remote;
+  }
   else if(rOk)chosen=remote; else if(lOk)chosen=local;
   if(chosen)Object.assign(mem,chosen.keys);
   lastSavedAt=chosen?(chosen.updatedAt||0):0;
-  hydratedLocalNewer=lOk&&(!rOk||(local.updatedAt||0)>(remote.updatedAt||0));
+  if(rOk)syncInfo.pull=Date.now();
   if(chosen===local&&mem.__lite&&rOk&&Array.isArray(remote.keys['body-weights'])){
     const rp={};remote.keys['body-weights'].forEach(x=>{if(x&&x.photo)rp[x.id]=x.photo;});
     (mem['body-weights']||[]).forEach(x=>{if(x&&!x.photo&&rp[x.id])x.photo=rp[x.id];});
@@ -697,6 +702,7 @@ let saveTimer=null;
 async function saveKey(k,v){
   mem[k]=v;
   lastSavedAt=Date.now();
+  if(k==='program')mem['program-at']=lastSavedAt;
   const dot=document.getElementById('savedot'),txt=document.getElementById('savetxt');
   if(dot){dot.classList.add('saving');txt.textContent='Saving';}
   writeLocal();
@@ -719,13 +725,15 @@ async function doSync(){
       if(localHasData())mergeFromObject(remoteAsBackup(remote));
       else applyRemote(remote);
     }
+    if(remote)syncInfo.pull=Date.now();
     lastSavedAt=Date.now();writeLocal();
     const j=await cloudPut(snapshot());
-    cloudOn=true;
+    cloudOn=true;syncInfo.push=Date.now();syncInfo.err='';
     absorbServer(j);
     if(!syncDirty)flashSave();
+    updateSyncState();
   }catch(e){
-    cloudOn=false;
+    cloudOn=false;syncInfo.err=(e&&e.message)||'sync failed';
     if(!syncRetried){syncRetried=true;syncDirty=true;syncTimer=setTimeout(doSync,6000);}
     else{evalBroken();}
   }
@@ -751,7 +759,7 @@ function applyRemote(remote){
   bodyGlucose=Array.isArray(mem['body-glucose'])?mem['body-glucose']:[];
   archives=Array.isArray(mem['archives'])?mem['archives']:[];
   mem['program']=activeProgram;mem['workout-log']=workoutLog;mem['body-weights']=bodyWeights;mem['body-glucose']=bodyGlucose;mem['archives']=archives;
-  mergeOverviewDefaults();migrateLog();
+  mergeOverviewDefaults();migrateLog();resetLogSig();
   document.getElementById('brandsub').textContent=activeProgram.name;
   renderTrain();renderBody();renderData();
   if(document.getElementById('view-plan').classList.contains('active'))renderPlan();
@@ -763,7 +771,7 @@ function updateSyncState(){
   if(k&&cloud&&cloud.key&&!k.value)k.value=cloud.key;
   if(el){
     if(!cloudReady())el.innerHTML='<span class="off">● This device only.</span> Everything is saved on this device. Set up cloud sync above and every device you open this on shares one set of data automatically.';
-    else if(cloudOn)el.innerHTML='<span class="on">● Sync is on (Google Drive).</span> Saves automatically. Newer data from another device is pulled in when you reopen the app or tap Save &amp; Sync.';
+    else if(cloudOn)el.innerHTML='<span class="on">● Sync is on (Google Drive).</span> Saves automatically. Newer data from another device is pulled in when you reopen the app or tap Save &amp; Sync.'+syncTimes();
     else el.innerHTML='<span class="off">● Cloud not reachable.</span> Data is still saved on this device. Check the URL and key, or your connection, then tap Save &amp; Sync.';
   }
   const fn=document.getElementById('footnote');
@@ -773,9 +781,20 @@ function updateSyncState(){
       :'Data saves on this device.<br>Tip: download a backup from the Data tab every few weeks.';
   }
 }
+function syncTimes(){
+  const f=t=>t?new Date(t).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'never';
+  return '<br>Last push '+f(syncInfo.push)+' · last pull '+f(syncInfo.pull)+(syncInfo.err?' · last error: '+syncInfo.err:'');
+}
 function remoteAsBackup(remote){
   const k=remote.keys||{};
-  return {workoutLog:k['workout-log'],bodyWeights:k['body-weights'],bodyGlucose:k['body-glucose'],archives:k['archives'],deleted:k['deleted'],logEpoch:k['log-epoch']};
+  return {workoutLog:k['workout-log'],logMeta:k['log-meta'],program:k['program'],programAt:k['program-at'],bodyWeights:k['body-weights'],bodyGlucose:k['body-glucose'],archives:k['archives'],deleted:k['deleted'],logEpoch:k['log-epoch']};
+}
+/* does a stored snapshot hold anything the user entered? (usable before the app state exists) */
+function keysHaveData(k){
+  if(!k||typeof k!=='object')return false;
+  if((Array.isArray(k['body-weights'])&&k['body-weights'].length)||(Array.isArray(k['body-glucose'])&&k['body-glucose'].length))return true;
+  const log=k['workout-log'];
+  return !!(log&&typeof log==='object'&&Object.values(log).some(day=>Array.isArray(day)&&day.some(entryHasWork)));
 }
 /* the backend merges every save and returns the result; fold anything new into this device */
 function absorbServer(j){
@@ -783,7 +802,8 @@ function absorbServer(j){
   if(!okShape(st))return;
   if(!localHasData()){if(remoteHasData(st))applyRemote(st);return;}
   const added=mergeFromObject(remoteAsBackup(st));
-  if(added.w+added.g+added.s>0)writeLocal();
+  if(added.changed)writeLocal();
+  if(added.localNewer)queueSync();
 }
 function remoteHasData(remote){
   if(!okShape(remote))return false;
@@ -859,6 +879,7 @@ async function saveAndSync(btn){
     lastSavedAt=Date.now();writeLocal();
     syncDirty=false;
     const j=await cloudPut(snapshot());
+    syncInfo.push=Date.now();syncInfo.pull=syncInfo.push;syncInfo.err='';
     absorbServer(j);
     toast(msg);
   }catch(e){
@@ -874,8 +895,15 @@ async function saveAndSync(btn){
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='visible'||!cloudReady()||syncDirty||syncBusy)return;
   cloudGet().then(remote=>{
-    cloudOn=true;
-    if(okShape(remote)&&(remote.updatedAt||0)>lastSavedAt){applyRemote(remote);toast('Updated from your other device');}
+    cloudOn=true;syncInfo.pull=Date.now();
+    if(okShape(remote)){
+      if(!localHasData()){if(remoteHasData(remote))applyRemote(remote);}
+      else{
+        const a=mergeFromObject(remoteAsBackup(remote));
+        if(a.changed){writeLocal();toast('Updated from your other device');}
+        if(a.localNewer)queueSync();
+      }
+    }
     updateSyncState();
   }).catch(()=>{cloudOn=false;updateSyncState();});
 });
@@ -980,7 +1008,7 @@ function reconcileProgram(stored){
   const stale=stored.name===DEFAULT_PROGRAM.name&&(stored.rev||0)<(DEFAULT_PROGRAM.rev||0);
   if(!stale)return stored;
   if(!logHasWork()){
-    const p=clone(DEFAULT_PROGRAM);workoutLog={};
+    const p=clone(DEFAULT_PROGRAM);workoutLog={};mem['log-meta']={};
     saveKey('program',p);saveKey('workout-log',workoutLog);
     return p;
   }
@@ -990,7 +1018,6 @@ function reconcileProgram(stored){
   return up.program;
 }
 (async function init(){
-  if(hydratedLocalNewer&&cloudReady())queueSync();
   const storedProg=await loadKey('program',null);
   workoutLog=await loadKey('workout-log',{});
   bodyWeights=await loadKey('body-weights',[]);
@@ -1002,10 +1029,31 @@ function reconcileProgram(stored){
   curWeek=currentCalendarWeek();
   mergeOverviewDefaults();
   migrateLog();
+  resetLogSig();
   document.getElementById('brandsub').textContent=activeProgram.name;
   evalBroken();
   renderTrain(); renderBody(); renderData();
+  if(pendingRemote){const r=pendingRemote;pendingRemote=null;const a=mergeFromObject(remoteAsBackup(r));if(a.changed)writeLocal();}
+  if(cloudReady()&&localHasData())queueSync();
 })();
+/* ---------- per-session edit stamps (last writer wins per training day across devices) ---------- */
+let logSig={};
+function logSigOf(v){return v===undefined?undefined:JSON.stringify(v);}
+function resetLogSig(){logSig={};Object.keys(workoutLog).forEach(k=>{logSig[k]=logSigOf(workoutLog[k]);});}
+function logMeta(){if(!mem['log-meta']||typeof mem['log-meta']!=='object')mem['log-meta']={};return mem['log-meta'];}
+function stampLog(){
+  const meta=logMeta(),now=Date.now();
+  const keys=new Set(Object.keys(workoutLog).concat(Object.keys(logSig)));
+  keys.forEach(k=>{
+    const sig=logSigOf(workoutLog[k]);
+    if(sig===logSig[k])return;
+    const day=workoutLog[k];
+    const hasWork=Array.isArray(day)&&day.some(entryHasWork);
+    /* opening a day creates empty default sets; that is not an edit and must not outrank another device's log */
+    if(hasWork||meta[k])meta[k]=now;
+    if(sig===undefined)delete logSig[k];else logSig[k]=sig;
+  });
+}
 const BLOCK_START='2026-09-07'; /* Week 1 Monday */
 function weekMonday(w){const ws=weeksList();const i=ws.indexOf(w);return shiftDate(BLOCK_START,(i>=0?i:(w-1))*7);}
 function dayISO(w,d){return shiftDate(weekMonday(w),DAYS.indexOf(d));}
@@ -1491,6 +1539,7 @@ document.getElementById('note-pinrow').addEventListener('click',()=>{
 });
 document.getElementById('notemodal').addEventListener('click',ev=>{if(ev.target.id==='notemodal')closeNoteModal();});
 function commitWorkout(rerender=true){
+  stampLog();
   saveKey('workout-log',workoutLog);
   if(rerender)renderTrain();
 }
@@ -1693,7 +1742,7 @@ function buildGChart(){
 /* ---------- DATA ---------- */
 function exportObject(){
   return {app:"REBUILD",version:4,exportedAt:new Date().toISOString(),
-    program:activeProgram,workoutLog:workoutLog,bodyWeights:bodyWeights,bodyGlucose:bodyGlucose,archives:archives,deleted:Array.isArray(mem['deleted'])?mem['deleted']:[],logEpoch:mem['log-epoch']||''};
+    program:activeProgram,workoutLog:workoutLog,bodyWeights:bodyWeights,bodyGlucose:bodyGlucose,archives:archives,deleted:Array.isArray(mem['deleted'])?mem['deleted']:[],logEpoch:mem['log-epoch']||'',logMeta:logMeta(),programAt:mem['program-at']||0};
 }
 function renderData(){
   updateStoreWarn();
@@ -1767,6 +1816,7 @@ function loadNewProgram(){
   workoutLog={};
   curWeek=weeksList()[0]||1;
   openDay=null;planSel=0;
+  mem['log-meta']={};resetLogSig();
   saveKey('log-epoch',uid()+'-'+Date.now());
   saveKey('archives',archives);
   saveKey('program',activeProgram);
@@ -1813,11 +1863,44 @@ function mergeFromObject(parsed){
     });
     bodyGlucose.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:(a.slot===b.slot?0:(a.slot==='AM'?-1:1))));
   }
-  const sameBlock=((parsed.logEpoch||'')===(mem['log-epoch']||''));
+  let localNewer=false;
+  /* a different training block on the other side: the block started most recently wins everywhere */
+  const epochTs=e=>{const m=String(e||'').match(/-(\d+)$/);return m?parseInt(m[1]):0;};
+  const incEpoch=parsed.logEpoch||'',locEpoch=mem['log-epoch']||'';
+  let adopted=false;
+  if(incEpoch!==locEpoch){
+    if(epochTs(incEpoch)>epochTs(locEpoch)){
+      if(validProgram(parsed.program))activeProgram=clone(parsed.program);
+      workoutLog=(parsed.workoutLog&&typeof parsed.workoutLog==='object')?clone(parsed.workoutLog):{};
+      mem['log-meta']=(parsed.logMeta&&typeof parsed.logMeta==='object')?clone(parsed.logMeta):{};
+      mem['log-epoch']=incEpoch;mem['program']=activeProgram;mem['program-at']=parsed.programAt||0;
+      curWeek=weeksList()[0]||1;openDay=null;planSel=0;
+      document.getElementById('brandsub').textContent=activeProgram.name;
+      adopted=true;changed=true;
+    }else localNewer=true;
+  }
+  const sameBlock=!adopted&&incEpoch===locEpoch;
   if(sameBlock&&parsed.workoutLog&&typeof parsed.workoutLog==='object'){
-    Object.keys(parsed.workoutLog).forEach(key=>{
+    const meta=logMeta();
+    const im=(parsed.logMeta&&typeof parsed.logMeta==='object')?parsed.logMeta:{};
+    const workSets=day=>Array.isArray(day)?day.reduce((n,e)=>n+((e&&Array.isArray(e.sets))?e.sets.filter(setHas).length:(e&&e.done?1:0)),0):0;
+    const allKeys=new Set(Object.keys(parsed.workoutLog).concat(Object.keys(meta)));
+    allKeys.forEach(key=>{
       const inc=parsed.workoutLog[key];
+      const it=im[key]||0,lt=meta[key]||0;
+      if(it>lt){
+        /* the other device edited this day more recently: take its version whole (adds, removals and un-checks included) */
+        const before=workSets(workoutLog[key]);
+        workoutLog[key]=Array.isArray(inc)?clone(inc):[];
+        meta[key]=it;
+        added.s+=Math.max(0,workSets(workoutLog[key])-before);
+        changed=true;
+        return;
+      }
+      if(lt>it){localNewer=true;return;}          /* this device is newer: keep ours */
+      if(lt>0&&it>0)return;                        /* same stamp on both sides: identical edit, nothing to do */
       if(!Array.isArray(inc))return;
+      /* neither side stamped (older data): fill in what this device is missing, never remove */
       if(!workoutLog[key])workoutLog[key]=[];
       inc.forEach((ie,i)=>{
         if(!ie)return;
@@ -1839,12 +1922,25 @@ function mergeFromObject(parsed){
       });
     });
   }
+  /* program: whichever device edited it last (notes, added or removed exercises) */
+  if(sameBlock&&validProgram(parsed.program)){
+    const ipa=parsed.programAt||0,lpa=mem['program-at']||0;
+    if(ipa>lpa){
+      activeProgram=clone(parsed.program);mem['program']=activeProgram;mem['program-at']=ipa;
+      activeProgram=reconcileProgram(activeProgram);
+      mergeOverviewDefaults();
+      document.getElementById('brandsub').textContent=activeProgram.name;
+      changed=true;
+    }else if(lpa>ipa)localNewer=true;
+  }
   if(Array.isArray(parsed.archives)){
     const have=new Set((archives||[]).map(a=>a.archivedAt));
     parsed.archives.forEach(a=>{if(a&&a.archivedAt&&!have.has(a.archivedAt)){archives.push(clone(a));changed=true;}});
   }
   mem['body-weights']=bodyWeights;mem['body-glucose']=bodyGlucose;mem['workout-log']=workoutLog;mem['archives']=archives;
   if(changed){migrateLog();renderTrain();renderBody();renderData();}
+  resetLogSig();
+  added.changed=changed;added.localNewer=localNewer;
   return added;
 }
 function mergeBackup(){
@@ -1876,6 +1972,9 @@ function restoreBackup(){
   archives=Array.isArray(parsed.archives)?clone(parsed.archives):[];
   mem['deleted']=Array.isArray(parsed.deleted)?clone(parsed.deleted):[];
   if(parsed.logEpoch)mem['log-epoch']=parsed.logEpoch;
+  mem['log-meta']=(parsed.logMeta&&typeof parsed.logMeta==='object')?clone(parsed.logMeta):{};
+  if(parsed.programAt)mem['program-at']=parsed.programAt;
+  resetLogSig();
   curWeek=weeksList()[0]||1;openDay=null;planSel=0;
   mergeOverviewDefaults();
   saveKey('program',activeProgram);saveKey('workout-log',workoutLog);
