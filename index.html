@@ -125,9 +125,9 @@ header{padding:22px 2px 14px;display:flex;align-items:flex-end;justify-content:s
 .addexform.open{display:block;}
 .addexform .finput{margin-bottom:8px;}
 .fst{display:inline-block;background:rgba(45,214,193,.15);color:var(--accent);font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;letter-spacing:.03em;margin-left:4px;vertical-align:1px;}
-.setcols{display:grid;grid-template-columns:26px 1fr 1fr .9fr 34px;gap:6px;padding:0 0 5px;}
+.setcols{display:grid;grid-template-columns:26px 1fr 1fr 34px;gap:6px;padding:0 0 5px;}
 .setcols span{font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.04em;font-weight:700;text-align:center;}
-.setrow{display:grid;grid-template-columns:26px 1fr 1fr .9fr 34px;gap:6px;align-items:center;margin-bottom:5px;position:relative;}
+.setrow{display:grid;grid-template-columns:26px 1fr 1fr 34px;gap:6px;align-items:center;margin-bottom:5px;position:relative;}
 .setin{padding-left:4px;padding-right:4px;}
 .setnum{cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;border-radius:6px;padding:2px 0;}
 .setnum:active{background:var(--bg3);}
@@ -169,7 +169,11 @@ header{padding:22px 2px 14px;display:flex;align-items:flex-end;justify-content:s
 .chk.on{background:var(--accent);border-color:var(--accent);color:var(--ontag);}
 .chk:active{transform:scale(.9);}
 .chk.sm{width:36px;height:36px;font-size:14px;border-radius:8px;}
-.setctl{display:flex;gap:6px;margin-top:7px;padding-left:37px;}
+.setctl{display:flex;gap:6px;margin-top:7px;padding-left:37px;flex-wrap:wrap;align-items:center;}
+.nextlbl{font-size:10px;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-left:auto;}
+.nextchip{background:var(--bg3);border:1px solid var(--line);color:var(--txt3);font-size:10.5px;font-weight:600;padding:5px 10px;border-radius:14px;cursor:pointer;font-family:'Archivo',sans-serif;}
+.nextchip.on{background:var(--accent);border-color:var(--accent);color:var(--ontag);}
+@media (max-width:420px){.nextlbl{flex-basis:100%;margin-left:0;margin-top:4px;}}
 .setbtn{background:var(--bg3);border:1px solid var(--line);color:var(--txt3);font-size:10.5px;font-weight:600;padding:5px 12px;border-radius:14px;cursor:pointer;font-family:'Archivo',sans-serif;}
 .setbtn:active{border-color:var(--accent);color:var(--accent);}
 .exrow{display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid var(--line);}
@@ -963,7 +967,7 @@ function mergeOverviewDefaults(){
   if(changed)saveKey('program',activeProgram);
 }
 /* ---------- init ---------- */
-function entryHasWork(e){return !!(e&&((Array.isArray(e.sets)&&e.sets.some(s=>s&&(s.done||s.skipped||s.w||s.r)))||e.done));}
+function entryHasWork(e){return !!(e&&((Array.isArray(e.sets)&&e.sets.some(s=>s&&(s.done||s.skipped||s.w||s.r)))||e.done||e.next));}
 function logHasWork(){
   return Object.values(workoutLog).some(day=>Array.isArray(day)&&day.some(entryHasWork));
 }
@@ -1280,7 +1284,7 @@ function prevTopSet(w,d,i){
   if(pi<0)return null;
   const log=workoutLog[pw+'-'+d];
   const best=bestSetOf(log&&log[pi]);
-  return best?{best,week:pw}:null;
+  return best?{best,week:pw,next:(log&&log[pi]&&log[pi].next)||''}:null;
 }
 function topRep(target){
   let m=String(target).match(/(\d+)\s*-\s*(\d+)/);
@@ -1291,10 +1295,11 @@ function topRep(target){
 function suggestWeight(target,prev){
   if(!prev)return null;
   const p=prev.best,top=topRep(target);
-  if(top&&p.r>=top){
-    const inc=p.w>=60?5:2.5;
-    return {w:Math.round((p.w+inc)*2)/2,note:'add '+inc+' lb',prev:p};
-  }
+  const inc=p.w>=60?5:2.5,up=Math.round((p.w+inc)*2)/2;
+  if(prev.next==='w')return {w:up,note:'you flagged +weight',prev:p};
+  if(prev.next==='r')return {w:p.w,note:'you flagged +reps: beat '+p.r,prev:p};
+  if(prev.next==='wr')return {w:up,note:'you flagged both: +'+inc+' lb and beat '+p.r+' reps',prev:p};
+  if(top&&p.r>=top)return {w:up,note:'add '+inc+' lb',prev:p};
   return {w:p.w,note:'hold, beat '+p.r+' reps',prev:p};
 }
 function buildDayBody(body,w,d,day,key){
@@ -1375,7 +1380,7 @@ function buildDayBody(body,w,d,day,key){
     }
     const cols=document.createElement('div');
     cols.className='setcols';
-    cols.innerHTML='<span>Set</span><span>Weight</span><span>Reps</span><span>RIR</span><span>Done</span>';
+    cols.innerHTML='<span>Set</span><span>Weight</span><span>Reps</span><span>Done</span>';
     block.appendChild(cols);
     E.sets.forEach((s,si)=>{
       const row=document.createElement('div');
@@ -1388,11 +1393,8 @@ function buildDayBody(body,w,d,day,key){
       wIn.className='setin';wIn.type='number';wIn.inputMode='decimal';wIn.placeholder=(sug&&s.type!=='warmup')?String(sug.w):'lb';wIn.value=s.w;
       const rIn=document.createElement('input');
       rIn.className='setin';rIn.type='text';rIn.inputMode='numeric';rIn.placeholder=s.skipped?'skip':'reps';rIn.value=s.r;
-      const rirIn=document.createElement('input');
-      rirIn.className='setin';rirIn.type='text';rirIn.inputMode='numeric';rirIn.placeholder='RIR';rirIn.value=s.rir||'';
       wIn.oninput=()=>{s.w=wIn.value;commitWorkout(false);};
       rIn.oninput=()=>{s.r=rIn.value;commitWorkout(false);};
-      rirIn.oninput=()=>{s.rir=rirIn.value;commitWorkout(false);};
       const chk=document.createElement('div');
       chk.className='chk sm'+(s.done?' on':'')+(s.skipped?' skip':'');
       chk.textContent=s.skipped?'–':'✓';
@@ -1426,14 +1428,20 @@ function buildDayBody(body,w,d,day,key){
           else if(b.dataset.st){s.type=b.dataset.st;commitWorkout();}
         };
       });
-      row.append(numEl,wIn,rIn,rirIn,chk,sm);
+      row.append(numEl,wIn,rIn,chk,sm);
       block.appendChild(row);
     });
     const ctl=document.createElement('div');
     ctl.className='setctl';
-    ctl.innerHTML=`<button class="setbtn add">+ set</button><button class="setbtn rm">− set</button>`;
+    ctl.innerHTML=`<button class="setbtn add">+ set</button><button class="setbtn rm">− set</button>
+      <span class="nextlbl">Next time</span>
+      <button class="nextchip" data-next="w">+ Weight</button><button class="nextchip" data-next="r">+ Reps</button><button class="nextchip" data-next="wr">Both</button>`;
     ctl.querySelector('.add').onclick=()=>{E.sets.push({w:'',r:'',rir:'',done:false});commitWorkout();};
     ctl.querySelector('.rm').onclick=()=>{if(E.sets.length>1){E.sets.pop();commitWorkout();}};
+    ctl.querySelectorAll('.nextchip').forEach(b=>{
+      b.classList.toggle('on',E.next===b.dataset.next);
+      b.onclick=()=>{E.next=(E.next===b.dataset.next)?'':b.dataset.next;commitWorkout();};
+    });
     block.appendChild(ctl);
     body.appendChild(block);
   });
