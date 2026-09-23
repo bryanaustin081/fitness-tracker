@@ -80,6 +80,7 @@ header{padding:22px 2px 14px;display:flex;align-items:flex-end;justify-content:s
 .phase-banner{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-left-width:3px;border-radius:var(--r-sm);padding:11px 14px;margin-bottom:14px;}
 .phase-banner .pt{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;text-transform:uppercase;}
 .phase-banner .pd{font-size:11.5px;color:var(--txt3);margin-left:auto;text-align:right;}
+.phase-banner .pdate{display:block;font-family:'Archivo',sans-serif;font-size:10.5px;font-weight:600;color:var(--txt3);text-transform:none;letter-spacing:0;margin-top:2px;}
 .wkprog{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
 .wkprog .bar{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;}
 .wkprog .fill{height:100%;background:var(--accent);border-radius:4px;transition:.4s;}
@@ -421,21 +422,16 @@ input[type="date"].finput{-webkit-appearance:none;appearance:none;display:block;
   </div>
   <div class="dsection">
     <div class="bhead"><h3>Blood Glucose</h3><span class="bunit">mg/dL</span></div>
-    <div class="dnote">Log readings as you take them — typically one AM and one PM.</div>
+    <div class="dnote">One reading a day, taken in the afternoon.</div>
     <div class="bform">
       <div class="brow">
         <div class="fmwrap"><label>date</label><input class="finput" type="date" id="bg-date"></div>
         <div class="fmwrap"><label>reading</label><input class="finput" type="number" inputmode="numeric" id="bg-value" placeholder="mg/dL"></div>
       </div>
       <div class="brow">
-        <div class="slotchips">
-          <button class="slotchip on" id="bg-am" onclick="setGSlot('AM')">AM</button>
-          <button class="slotchip" id="bg-pm" onclick="setGSlot('PM')">PM</button>
-        </div>
         <button class="btn-primary" onclick="addGlucose()">Add reading</button>
       </div>
     </div>
-    <div class="glegend"><span><i class="gl-am"></i>AM</span><span><i class="gl-pm"></i>PM</span></div>
     <div class="bchartbox"><canvas id="gChart"></canvas></div>
     <div id="bg-list"></div>
   </div>
@@ -524,115 +520,120 @@ function hexA(hex,a){
   const n=parseInt(m[1],16);
   return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
 }
-const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DAYS=["S1","S2","S3","S4","S5","S6"];          /* session slots; a program uses the first N */
+const DAY_LABEL={S1:"Day 1",S2:"Day 2",S3:"Day 3",S4:"Day 4",S5:"Day 5",S6:"Day 6"};
+const WEEKDAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const LEGACY_MAP={Tue:"S1",Wed:"S2",Fri:"S3",Sun:"S4"};   /* the old weekday split of this block */
+function dayLabel(d){return DAY_LABEL[d]||d;}
+/* ---- legacy (weekday-keyed) programs and logs → session slots ---- */
+function isLegacyProgram(p){return !!(p&&p.weeks&&Object.values(p.weeks).some(W=>W&&W.days&&Object.keys(W.days).some(k=>WEEKDAYS.includes(k))));}
+function convertLegacyProgram(p){
+  const out=clone(p),keymap={};
+  Object.keys(out.weeks).forEach(w=>{
+    const W=out.weeks[w];if(!W||!W.days)return;
+    const nd={},km={};let n=0;
+    WEEKDAYS.forEach(d=>{const day=W.days[d];if(!day)return;if(day.t==='lift'){n++;const k='S'+n;nd[k]=day;km[d]=k;}});
+    Object.keys(W.days).forEach(k=>{if(!WEEKDAYS.includes(k))nd[k]=W.days[k];});
+    W.days=nd;keymap[w]=km;
+  });
+  return {program:out,keymap};
+}
+function legacyKey(key,keymap){
+  const m=String(key).match(/^(\d+)-([A-Za-z]+)$/);if(!m)return key;
+  const w=m[1],d=m[2];if(!WEEKDAYS.includes(d))return key;
+  const km=(keymap&&keymap[w])||LEGACY_MAP;const nk=km[d];
+  return nk?(w+'-'+nk):null;   /* null: a cardio day, dropped */
+}
+function convertLegacyLog(log,meta,keymap){
+  const nl={},nm={};
+  Object.keys(log||{}).forEach(k=>{const nk=legacyKey(k,keymap);if(nk&&nl[nk]===undefined)nl[nk]=log[k];});
+  Object.keys(meta||{}).forEach(k=>{const nk=legacyKey(k,keymap);if(nk)nm[nk]=Math.max(nm[nk]||0,meta[k]);});
+  return {log:nl,meta:nm};
+}
 /* ---------- default program: 8-Week Recomp Block (starts Mon Sep 7, 2026) ---------- */
 const DEFAULT_PROGRAM={
- name:"8-Week Recomp Block",rev:7,
+ name:"8-Week Recomp Block",rev:8,
  weeks:{
   "1":{label:"Base",phase:"Base",accent:"#5DCAA5",summary:"MEV · RPE 6-7",dates:"Sep 7 – 13",
     ov:{vol:62,rpe:6.5,volL:"MEV",rpeL:"RPE 6–7",
       sub:"Re-entry at minimum effective volume while the new diet settles in. Groove the new split and log baseline numbers everywhere.",
       badges:["MEV volume","RPE 6–7","Log baselines"],
-      coach:"<b>Leave 3–4 reps in reserve on every set.</b> First week of a new split in a deficit — the goal is clean technique and baseline numbers, not soreness. Monday and Thursday runs follow Couch to 5K: jog slow enough to hold a conversation."},
+      coach:"<b>Leave 3–4 reps in reserve on every set.</b> First week of a new split in a deficit — the goal is clean technique and baseline numbers, not soreness."},
     days:{
-    Mon:{t:"cardio",title:"C25K Run 1",note:"Walk 5 min to warm up, then <b>8 × (jog 60 s / walk 90 s)</b>. Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","3 × 10"),ex("Leg press","3 × 12"),ex("Leg extension","3 × 15")]},
-    Wed:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Run 2",note:"Walk 5 min to warm up, then <b>8 × (jog 60 s / walk 90 s)</b>. Same as Monday, easier pace if needed. Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Legs — Squat Base",note:"<b>Find your working weight.</b> Ramp: bar, then 3 to 4 sets adding 20–40 lb until 8 reps feels like RPE 7 (3 reps left). That weight is your Week 1 number.",ex:[ex("Back squat","4 × 8"),ex("Walking lunge","3 × 10/leg")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Baseline week. Note your class scores and times. Focus: <b>steady pacing</b> — don't redline early."},
-    Sun:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
+    S1:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","3 × 10"),ex("Leg press","3 × 12"),ex("Leg extension","3 × 15")]},
+    S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
+    S3:{t:"lift",title:"Legs — Squat Base",note:"<b>Find your working weight.</b> Ramp: bar, then 3 to 4 sets adding 20–40 lb until 8 reps feels like RPE 7 (3 reps left). That weight is your Week 1 number.",ex:[ex("Back squat","4 × 8"),ex("Walking lunge","3 × 10/leg")]},
+    S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
   "2":{label:"Build",phase:"Base",accent:"#5DCAA5",summary:"MEV+ · RPE 7",dates:"Sep 14 – 20",
     ov:{vol:70,rpe:7,volL:"MEV+",rpeL:"RPE 7",
-      sub:"One set added to the lead leg movements. C25K moves to 90-second jogs.",
+      sub:"One set added to the lead leg movements.",
       badges:["MEV+ volume","RPE 7","+1 set on leads"],
       coach:"<b>Add load only where every set hit the top of the range last week.</b> On 1,900 kcal recovery is the limiter — earn each jump, and keep the extra sets at the same load as Week 1."},
     days:{
-    Mon:{t:"cardio",title:"C25K Run 1",note:"Walk 5 min to warm up, then <b>6 × (jog 90 s / walk 2 min)</b>. Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","4 × 10"),ex("Leg press","4 × 12"),ex("Leg extension","3 × 15")]},
-    Wed:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Run 2",note:"Walk 5 min to warm up, then <b>6 × (jog 90 s / walk 2 min)</b>. Repeat Monday. Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 8, RPE 7.</b> Ramp with the bar, 50% and 70% before the working sets. Add 5–10 lb over last week if every set hit 8 clean reps.",ex:[ex("Back squat","4 × 8"),ex("Walking lunge","3 × 10/leg")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>sled push/pull effort</b> — drive through the legs, short powerful steps."},
-    Sun:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
+    S1:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","4 × 10"),ex("Leg press","4 × 12"),ex("Leg extension","3 × 15")]},
+    S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
+    S3:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 8, RPE 7.</b> Ramp with the bar, 50% and 70% before the working sets. Add 5–10 lb over last week if every set hit 8 clean reps.",ex:[ex("Back squat","4 × 8"),ex("Walking lunge","3 × 10/leg")]},
+    S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
   "3":{label:"Accumulate",phase:"Accumulation",accent:"#7F77DD",summary:"MAV · FST-7 begins · RPE 7-8",dates:"Sep 21 – 27",
     ov:{vol:87,rpe:7.5,volL:"MAV",rpeL:"RPE 7–8",
       sub:"Full accumulation begins: FST-7 finishers arrive on the leg days. Arm days keep their superset and straight-set structure; rep ranges open up on legs.",
       badges:["MAV volume","RPE 7–8","Full FST-7 begins"],
       coach:"<b>FST-7 rest is 30–45 seconds, no more.</b> Keep 2–3 reps in reserve on straight sets. Rep progression rules now: beat last week's reps at a load before adding weight to it."},
     days:{
-    Mon:{t:"cardio",title:"C25K Run 1",note:"Walk 5 min to warm up, then <b>2 rounds: jog 90 s, walk 90 s, jog 3 min, walk 3 min</b>. Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","4 × 8-10"),ex("Leg press","3 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
-    Wed:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Run 2",note:"Walk 5 min to warm up, then <b>2 rounds: jog 90 s, walk 90 s, jog 3 min, walk 3 min</b>. Repeat Monday. Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 6, RPE 7–8.</b> Add 5–10 lb from Week 2. Ramp first; log the ramp as warm-up sets (tap the set number).",ex:[ex("Back squat","4 × 6"),ex("Walking lunge","3 × 10/leg")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>wall balls</b> — steady rhythm; break before you fail, not after."},
-    Sun:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
+    S1:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","4 × 8-10"),ex("Leg press","3 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
+    S3:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 6, RPE 7–8.</b> Add 5–10 lb from Week 2. Ramp first; log the ramp as warm-up sets (tap the set number).",ex:[ex("Back squat","4 × 6"),ex("Walking lunge","3 × 10/leg")]},
+    S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
   "4":{label:"Push",phase:"Accumulation",accent:"#7F77DD",summary:"+Load · RPE 8",dates:"Sep 28 – Oct 4",
     ov:{vol:92,rpe:8,volL:"MAV",rpeL:"RPE 8",
-      sub:"Same set structure as Week 3 with load bumps on the primary compounds. C25K Week 4: first 5-minute jogs.",
+      sub:"Same set structure as Week 3 with load bumps on the primary compounds.",
       badges:["MAV volume","RPE 8","+Load on compounds"],
-      coach:"<b>RPE 8 = about 2 reps left on your last set.</b> Avoid true failure on compounds — in a deficit it costs more recovery than it buys growth. Jog your Hyrox transitions Saturday."},
+      coach:"<b>RPE 8 = about 2 reps left on your last set.</b> Avoid true failure on compounds — in a deficit it costs more recovery than it buys growth."},
     days:{
-    Mon:{t:"cardio",title:"C25K Run 1",note:"Walk 5 min to warm up, then <b>jog 3, walk 1.5, jog 5, walk 2.5, jog 3, walk 1.5, jog 5</b> (minutes). Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat (+load)","4 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
-    Wed:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Run 2",note:"Walk 5 min to warm up, then <b>jog 3, walk 1.5, jog 5, walk 2.5, jog 3, walk 1.5, jog 5</b> (minutes). Repeat Monday. Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Legs — Squat Build",note:"<b>5 × 5, RPE 8.</b> Same weight all five sets. Rest 3 min between squat sets.",ex:[ex("Back squat","5 × 5"),ex("Walking lunge","3 × 12/leg")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>transitions</b> — jog between stations, never walk."},
-    Sun:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
+    S1:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat (+load)","4 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
+    S3:{t:"lift",title:"Legs — Squat Build",note:"<b>5 × 5, RPE 8.</b> Same weight all five sets. Rest 3 min between squat sets.",ex:[ex("Back squat","5 × 5"),ex("Walking lunge","3 × 12/leg")]},
+    S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
   "5":{label:"Climb",phase:"Accumulation",accent:"#7F77DD",summary:"MAV+ · RPE 8",dates:"Oct 5 – 11",
     ov:{vol:97,rpe:8,volL:"MAV+",rpeL:"RPE 8",
       sub:"Volume climbs toward peak: fifth set on hack squat, squat drops to sets of 4 and climbs in load. Arm days hold their set counts; progress by load and reps.",
       badges:["MAV+ volume","RPE 8","Checkpoint week"],
       coach:"<b>Checkpoint:</b> if lifts stall two sessions in a row or sleep degrades, take a 3–4 day diet break at maintenance calories, then resume. Better to bank recovery here than crash in Week 6."},
     days:{
-    Mon:{t:"cardio",title:"C25K Run 1",note:"Walk 5 min to warm up, then <b>jog 5, walk 3, jog 5, walk 3, jog 5</b> (minutes). Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","5 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
-    Wed:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Run 2",note:"Walk 5 min to warm up, then <b>jog 8, walk 5, jog 8</b> (minutes). Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 4, RPE 8.</b> Add 5–10 lb from Week 4. Brace hard, control the descent, drive up fast.",ex:[ex("Back squat","4 × 4"),ex("Walking lunge","3 × 12/leg")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Focus: <b>run pacing</b>. Keep the class runs at the pace your C25K jogs are building."},
-    Sun:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
+    S1:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","5 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
+    S3:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 4, RPE 8.</b> Add 5–10 lb from Week 4. Brace hard, control the descent, drive up fast.",ex:[ex("Back squat","4 × 4"),ex("Walking lunge","3 × 12/leg")]},
+    S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
   "6":{label:"Peak",phase:"Peak volume",accent:"#EF9F27",summary:"MRV · RPE 8-9",dates:"Oct 12 – 18",
     ov:{vol:100,rpe:8.5,volL:"MRV",rpeL:"RPE 8–9",
-      sub:"Peak volume of the block. Saturday class counts as a hard day — nothing extra after it.",
+      sub:"Peak volume of the block. Four sessions, nothing extra.",
       badges:["MRV volume","RPE 8–9","Hardest week"],
       coach:"<b>Sleep 7–9 hours and hit protein every day.</b> You're at MRV in a deficit — expect it to feel hard, add nothing anywhere, and remember the deload next-next week is what banks the gains."},
     days:{
-    Mon:{t:"cardio",title:"C25K Run 1",note:"Walk 5 min to warm up, then <b>jog 20 min continuous</b>. First long run, keep it slow. Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","5 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
-    Wed:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Run 2",note:"Walk 5 min to warm up, then <b>jog 5, walk 3, jog 8, walk 3, jog 5</b> (minutes). Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Legs — Squat Heavy",note:"<b>Triples, RPE 8–9.</b> Build to a top set of 3 with about 1 rep left, then two more triples at the same weight. Rest 3–4 min.",ex:[ex("Back squat","3 × 3"),ex("Walking lunge","3 × 10/leg")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Peak week. If class runs heavy, this is your hard day — <b>quality effort, clean form</b>."},
-    Sun:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
+    S1:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat","5 × 8-10"),ex("Leg press","4 × 10-12"),ex("Leg extension|FST","7 × 12-15")]},
+    S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
+    S3:{t:"lift",title:"Legs — Squat Heavy",note:"<b>Triples, RPE 8–9.</b> Build to a top set of 3 with about 1 rep left, then two more triples at the same weight. Rest 3–4 min.",ex:[ex("Back squat","3 × 3"),ex("Walking lunge","3 × 10/leg")]},
+    S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
   "7":{label:"Intensify",phase:"Intensification",accent:"#EF9F27",summary:"-20% vol · +Load · RPE 8-9",dates:"Oct 19 – 25",
     ov:{vol:64,rpe:8.5,volL:"−20% vol",rpeL:"RPE 8–9",
       sub:"Intensification: FST-7 comes off, volume drops about 20%, loads go up. Chase heavy top sets.",
       badges:["−20% volume","+Load","Heavy top sets"],
-      coach:"<b>Fewer sets, heavier weight.</b> Friday back squat builds to heavy doubles: quality over grind, keep rep speed honest. Go hard in Saturday's class but skip any extra volume after."},
+      coach:"<b>Fewer sets, heavier weight.</b> Day 3 back squat builds to heavy doubles: quality over grind, keep rep speed honest."},
     days:{
-    Mon:{t:"cardio",title:"C25K Run 1",note:"Walk 5 min to warm up, then <b>jog 10, walk 3, jog 10</b> (minutes). Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat (heavy)","4 × 6-8"),ex("Leg press","3 × 8-10"),ex("Leg extension","3 × 12")]},
-    Wed:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Run 2",note:"Walk 5 min to warm up, then <b>jog 25 min continuous</b>. Conversational pace. Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Legs — Squat Heavy",note:"<b>Doubles.</b> Build to a heavy double at RPE 8 (roughly 90% of what you expect to max), then two back-off doubles 5% lighter. Lunges light.",ex:[ex("Back squat","3 × 2"),ex("Walking lunge","2 × 10/leg")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Loads are up in the gym this week — go hard in class but <b>skip any extra volume after</b>."},
-    Sun:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
+    S1:{t:"lift",title:"Legs — Quad Focus",ex:[ex("Hack squat (heavy)","4 × 6-8"),ex("Leg press","3 × 8-10"),ex("Leg extension","3 × 12")]},
+    S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
+    S3:{t:"lift",title:"Legs — Squat Heavy",note:"<b>Doubles.</b> Build to a heavy double at RPE 8 (roughly 90% of what you expect to max), then two back-off doubles 5% lighter. Lunges light.",ex:[ex("Back squat","3 × 2"),ex("Walking lunge","2 × 10/leg")]},
+    S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
   "8":{label:"Test",phase:"Deload + squat max",accent:"#9396a0",summary:"-50% · Squat max Fri",dates:"Oct 26 – Nov 1",
     ov:{vol:31,rpe:5.5,volL:"−50%",rpeL:"RPE 5–6",
-      sub:"Taper week. Half the sets everywhere else and easy 20-minute runs, so Friday you are fresh to test the back squat.",
+      sub:"Taper week. Half the sets in the other three sessions so you arrive at Day 3 fresh to test the back squat.",
       badges:["−50% volume","Squat max Friday","No FST-7"],
-      coach:"<b>Everything but Friday is a deload.</b> Keep the deficit, cut the training stress, and arrive at Friday rested. After the max, ask Claude in this project for the next block and load it in the Data tab."},
+      coach:"<b>Everything but Day 3 is a deload.</b> Keep the deficit, cut the training stress, and do the squat test on a day you feel rested. After the max, ask Claude in this project for the next block and load it in the Data tab."},
     days:{
-    Mon:{t:"cardio",title:"C25K Easy Run",note:"Walk 5 min to warm up, then <b>jog 20 min easy</b>. Deload: no pushing pace. Walk 5 min to cool down."},
-    Tue:{t:"lift",title:"Legs — Deload",ex:[ex("Hack squat","2 × 10"),ex("Leg press","2 × 12"),ex("Leg extension","2 × 15")]},
-    Wed:{t:"lift",title:"Chest + Triceps (Deload)",note:"<b>Deload.</b> Same movements, half the sets, 3–4 reps in reserve. Leave the gym feeling fresh.",ex:[ex("Machine chest press","2 × 8-12"),ex("Pec fly machine","2 × 12-15"),ex("Overhead cable rope triceps extension","1 × 10-15"),ex("Cable rope triceps pushdown","1 × 12-15"),ex("Machine triceps kickback","1 × 12-15")]},
-    Thu:{t:"cardio",title:"C25K Easy Run",note:"Walk 5 min to warm up, then <b>jog 20 min easy</b>. Next block starts at 28 min. Walk 5 min to cool down."},
-    Fri:{t:"lift",title:"Squat Max Test",note:"<b>Max day.</b> Ramp: bar × 8, 50% × 5, 70% × 3, 80% × 1, 90% × 1, then attempts. Rest 4–5 min before each attempt; stop at the first grind. Log every ramp set as a warm-up and the best single as the working set. No lunges.",ex:[ex("Back squat","1 × 1")]},
-    Sat:{t:"cardio",title:"CrossFit Syracuse — Hyrox",note:"Deload — move at 60-70% effort, or skip entirely if beat up. Next block starts fresh."},
-    Sun:{t:"lift",title:"Arms Supersets (Deload)",note:"<b>Deload.</b> Same movements, half the sets, 3–4 reps in reserve. Leave the gym feeling fresh.",ex:[ex("1A · Cable rope triceps pushdown","2 × 10-15"),ex("1B · Standing EZ-bar cable curl","2 × 10-15"),ex("2A · Smith machine JM press","2 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","2 × 8-12"),ex("3A · Overhead cable rope triceps extension","2 × 10-15"),ex("3B · Standing dumbbell hammer curl","2 × 10-12")]}}}
+    S1:{t:"lift",title:"Legs — Deload",ex:[ex("Hack squat","2 × 10"),ex("Leg press","2 × 12"),ex("Leg extension","2 × 15")]},
+    S2:{t:"lift",title:"Chest + Triceps (Deload)",note:"<b>Deload.</b> Same movements, half the sets, 3–4 reps in reserve. Leave the gym feeling fresh.",ex:[ex("Machine chest press","2 × 8-12"),ex("Pec fly machine","2 × 12-15"),ex("Overhead cable rope triceps extension","1 × 10-15"),ex("Cable rope triceps pushdown","1 × 12-15"),ex("Machine triceps kickback","1 × 12-15")]},
+    S3:{t:"lift",title:"Squat Max Test",note:"<b>Max day.</b> Ramp: bar × 8, 50% × 5, 70% × 3, 80% × 1, 90% × 1, then attempts. Rest 4–5 min before each attempt; stop at the first grind. Log every ramp set as a warm-up and the best single as the working set. No lunges.",ex:[ex("Back squat","1 × 1")]},
+    S4:{t:"lift",title:"Arms Supersets (Deload)",note:"<b>Deload.</b> Same movements, half the sets, 3–4 reps in reserve. Leave the gym feeling fresh.",ex:[ex("1A · Cable rope triceps pushdown","2 × 10-15"),ex("1B · Standing EZ-bar cable curl","2 × 10-15"),ex("2A · Smith machine JM press","2 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","2 × 8-12"),ex("3A · Overhead cable rope triceps extension","2 × 10-15"),ex("3B · Standing dumbbell hammer curl","2 × 10-12")]}}}
  }
 };
 /* ---------- storage: this device (localStorage) + optional Google Drive cloud sync ---------- */
@@ -939,7 +940,7 @@ let activeProgram=clone(DEFAULT_PROGRAM);
 let workoutLog={}, archives=[], bodyWeights=[], bodyGlucose=[];
 let curWeek=1, openDay=null;
 let planSel=0, planChart=null, wChart=null, gChart=null;
-let gSlot='AM', pendingPhoto=null, bwShowAll=false, bgShowAll=false;
+let gSlot='PM', pendingPhoto=null, bwShowAll=false, bgShowAll=false;
 const addExOpen={};
 document.addEventListener('click',()=>{document.querySelectorAll('.exmenu.open,.setmenu.open').forEach(m=>m.classList.remove('open'));});
 /* ---------- program accessors ---------- */
@@ -1009,6 +1010,12 @@ function upgradeProgramInPlace(stored){
    - anything else (current rev, or a custom loaded program): keep as is */
 function reconcileProgram(stored){
   if(!validProgram(stored)){const p=clone(DEFAULT_PROGRAM);saveKey('program',p);return p;}
+  if(isLegacyProgram(stored)){
+    const c=convertLegacyProgram(stored);stored=c.program;
+    const r=convertLegacyLog(workoutLog,logMeta(),c.keymap);
+    workoutLog=r.log;mem['workout-log']=workoutLog;mem['log-meta']=r.meta;
+    saveKey('program',stored);saveKey('workout-log',workoutLog);
+  }
   const stale=stored.name===DEFAULT_PROGRAM.name&&(stored.rev||0)<(DEFAULT_PROGRAM.rev||0);
   if(!stale)return stored;
   if(!logHasWork()){
@@ -1060,7 +1067,6 @@ function stampLog(){
 }
 const BLOCK_START='2026-09-07'; /* Week 1 Monday */
 function weekMonday(w){const ws=weeksList();const i=ws.indexOf(w);return shiftDate(BLOCK_START,(i>=0?i:(w-1))*7);}
-function dayISO(w,d){return shiftDate(weekMonday(w),DAYS.indexOf(d));}
 function currentCalendarWeek(){
   const start=new Date(BLOCK_START+'T00:00:00');
   const wkNum=Math.floor((new Date()-start)/(7*24*3600*1000))+1;
@@ -1126,7 +1132,7 @@ function renderPlan(){
   cardsEl.querySelectorAll('.plan-card').forEach(el=>el.onclick=()=>{planSel=+el.dataset.i;renderPlan();});
   const w=wl[planSel],ac=phaseC(w),o=weekOv(w);
   const rows=DAYS.map(d=>scheduleLine(w,d)).filter(Boolean)
-    .map(r=>`<div class="plan-row"><div class="plan-day">${r.d}</div><div class="plan-rc">${r.content}</div><div class="plan-mod">${r.mod}</div></div>`).join('');
+    .map(r=>`<div class="plan-row"><div class="plan-day">${dayLabel(r.d)}</div><div class="plan-rc">${r.content}</div><div class="plan-mod">${r.mod}</div></div>`).join('');
   let badges='';
   if(o&&o.badges&&o.badges.length){
     const bg=hexA(ac,0.16);
@@ -1219,13 +1225,15 @@ function renderTrain(){
   });
   const pb=document.getElementById('phasebanner');
   pb.style.borderLeftColor=phaseC(curWeek);
-  pb.innerHTML=`<span class="pt">Week ${curWeek} · ${metaL(curWeek)}</span><span class="pd">${phaseN(curWeek)}<br>${metaS(curWeek)}</span>`;
+  const Wd=(wk(curWeek)&&wk(curWeek).dates)||'';
+  pb.innerHTML=`<span class="pt">Week ${curWeek} · ${metaL(curWeek)}${Wd?`<span class="pdate">${Wd} · any order</span>`:''}</span><span class="pd">${phaseN(curWeek)}<br>${metaS(curWeek)}</span>`;
   const td=trainDaysOf(curWeek);
   let totalDone=0; td.forEach(d=>{if(dayComplete(curWeek,d))totalDone++;});
-  document.getElementById('wkproglbl').textContent=totalDone+'/'+td.length+' days';
+  document.getElementById('wkproglbl').textContent=totalDone+'/'+td.length+' sessions';
   document.getElementById('wkprogfill').style.width=(td.length?totalDone/td.length*100:0)+'%';
   const list=document.getElementById('daylist');
   list.innerHTML='';
+  let nextFound=false;
   td.forEach(d=>{
     const day=dayOf(curWeek,d);
     const key=curWeek+'-'+d;
@@ -1241,15 +1249,19 @@ function renderTrain(){
     }
     const tagClass=isDone?'done':day.t;
     const isOpen=openDay===d;
-    const dISO=dayISO(curWeek,d);
-    const isToday=dISO===isoToday();
-    if(isToday)card.className='day today';
+    const hasWork=dayHasWork(curWeek,d);
+    const isNext=!hasWork&&!nextFound;
+    if(isNext){nextFound=true;card.className='day today';}
+    const stamp=(mem['log-meta']||{})[key];
+    let when='';
+    if(hasWork&&stamp)when=(isDone?'Done ':'Logged ')+fmtDate(new Date(stamp).toISOString().slice(0,10)).dd;
+    else if(isNext&&curWeek===currentCalendarWeek())when='Up next';
     card.innerHTML=`
       <div class="day-head">
-        <span class="daytag ${tagClass}">${d}</span>
+        <span class="daytag ${tagClass}">${dayLabel(d)}</span>
         <div class="daymeta">
           <span class="day-title">${day.title}</span>
-          <span class="day-date">${fmtDate(dISO).dd}${isToday?' · Today':''}</span>
+          <span class="day-date">${when}</span>
         </div>
         ${cnt}
         <span class="chev ${isOpen?'open':''}">▾</span>
@@ -1552,11 +1564,7 @@ function commitWorkout(rerender=true){
   if(rerender)renderTrain();
 }
 /* ---------- BODY: weight, photos, glucose ---------- */
-function setGSlot(s){
-  gSlot=s;
-  document.getElementById('bg-am').classList.toggle('on',s==='AM');
-  document.getElementById('bg-pm').classList.toggle('on',s==='PM');
-}
+function setGSlot(s){gSlot=s;}
 document.getElementById('bw-photo').addEventListener('change',function(ev){
   const f=ev.target.files&&ev.target.files[0];
   if(!f)return;
@@ -1630,14 +1638,14 @@ function renderBody(){
   const prev=n>1?bodyWeights[n-2]:null;
   const tot=(latest&&n>1)?(latest.w-first.w):null;
   const wkd=(latest&&prev)?(latest.w-prev.w):null;
-  const revG=[...bodyGlucose].reverse();
-  const lastAM=revG.find(g=>g.slot==='AM');
-  const lastPM=revG.find(g=>g.slot==='PM');
+  const lastG=bodyGlucose.length?bodyGlucose[bodyGlucose.length-1]:null;
+  const prevG=bodyGlucose.length>1?bodyGlucose[bodyGlucose.length-2]:null;
+  const gdl=(lastG&&prevG)?(lastG.v-prevG.v):null;
   const delta=d=>{if(d==null)return '—';const r=Math.round(d*10)/10;return (r>0?'+':'')+r;};
   sg.innerHTML=`
     <div class="bstat"><div class="bv">${latest?latest.w:'—'}</div><div class="bl">Weight (lb)</div><div class="bd" style="color:${wkd!=null&&wkd<=0?'var(--accent)':'var(--txt3)'}">${wkd!=null?delta(wkd)+' vs last':'first check-in sets baseline'}</div></div>
     <div class="bstat"><div class="bv">${tot!=null?delta(tot):'—'}</div><div class="bl">Since start (lb)</div><div class="bd">${n} check-in${n===1?'':'s'}</div></div>
-    <div class="bstat"><div class="bv">${lastAM?lastAM.v:'—'}<span class="bsm">/</span>${lastPM?lastPM.v:'—'}</div><div class="bl">Glucose AM / PM</div><div class="bd">latest readings</div></div>`;
+    <div class="bstat"><div class="bv">${lastG?lastG.v:'—'}</div><div class="bl">Glucose (mg/dL)</div><div class="bd">${lastG?fmtDate(lastG.date).dd+(gdl!=null?' · '+delta(gdl)+' vs last':''):'no readings yet'}</div></div>`;
   renderWeightList();
   renderGlucoseList();
   buildWChart();
@@ -1682,7 +1690,7 @@ function renderGlucoseList(){
   shown.forEach(g=>{
     const row=document.createElement('div');
     row.className='bg-row';
-    row.innerHTML=`<span class="bg-slot ${g.slot==='AM'?'am':'pm'}">${g.slot}</span>
+    row.innerHTML=`${g.slot==='AM'?'<span class="bg-slot am">AM</span>':''}
       <span class="bg-val">${g.v}</span>
       <span class="bg-date">${fmtDate(g.date).dw} · ${fmtDate(g.date).dd}</span>
       <button class="brem" aria-label="Delete reading">×</button>`;
@@ -1707,11 +1715,11 @@ function chartInk(){
 function buildWChart(){
   const box=document.getElementById('wChart');
   if(!box)return;
-  if(typeof window.Chart==='undefined'){setTimeout(buildWChart,350);return;}
-  if(wChart){wChart.destroy();wChart=null;}
   const wrap=box.parentElement;
   if(bodyWeights.length<2){wrap.style.display='none';return;}
   wrap.style.display='';
+  if(typeof window.Chart==='undefined'){setTimeout(buildWChart,350);return;}
+  if(wChart){wChart.destroy();wChart=null;}
   const c=chartInk();
   wChart=new Chart(box,{type:'line',
     data:{labels:bodyWeights.map(e=>fmtDate(e.date).dd),
@@ -1724,26 +1732,23 @@ function buildWChart(){
 function buildGChart(){
   const box=document.getElementById('gChart');
   if(!box)return;
+  const wrap=box.parentElement;
+  if(bodyGlucose.length<2){wrap.style.display='none';return;}
+  wrap.style.display='';
   if(typeof window.Chart==='undefined'){setTimeout(buildGChart,350);return;}
   if(gChart){gChart.destroy();gChart=null;}
-  const wrap=box.parentElement;
-  const leg=document.querySelector('.glegend');
-  if(bodyGlucose.length<2){wrap.style.display='none';if(leg)leg.style.display='none';return;}
-  wrap.style.display='';if(leg)leg.style.display='';
   const byDate={};
   bodyGlucose.forEach(g=>{
-    if(!byDate[g.date])byDate[g.date]={AM:[],PM:[]};
-    byDate[g.date][g.slot].push(g.v);
+    const cur=byDate[g.date];
+    if(!cur||g.slot==='PM'||cur.slot!=='PM')byDate[g.date]={v:g.v,slot:g.slot};
   });
-  const dates=Object.keys(byDate).sort().slice(-14);
-  const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+  const dates=Object.keys(byDate).sort().slice(-21);
   const c=chartInk();
   gChart=new Chart(box,{type:'line',
     data:{labels:dates.map(d=>fmtDate(d).dd),datasets:[
-      {label:'AM',data:dates.map(d=>avg(byDate[d].AM)),borderColor:c.ac,backgroundColor:c.ac,borderWidth:2.5,tension:.3,fill:false,pointRadius:4,pointBackgroundColor:c.ac,spanGaps:true},
-      {label:'PM',data:dates.map(d=>avg(byDate[d].PM)),borderColor:c.pm,backgroundColor:c.pm,borderWidth:2,borderDash:[6,4],tension:.3,fill:false,pointRadius:4,pointStyle:'rectRot',pointBackgroundColor:c.pm,spanGaps:true}]},
+      {label:'Glucose',data:dates.map(d=>byDate[d].v),borderColor:c.ac,backgroundColor:hexA(c.ac,0.12),borderWidth:2.5,tension:.3,fill:true,pointRadius:4,pointBackgroundColor:c.ac,spanGaps:true}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.dataset.label+' '+x.parsed.y+' mg/dL'}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.parsed.y+' mg/dL'}}},
       scales:{y:{grace:'12%',ticks:{color:c.tick,font:{size:10}},grid:{color:c.grid}},
               x:{ticks:{color:c.tick,font:{size:10},maxTicksLimit:7},grid:{display:false}}}}});
 }
@@ -1838,6 +1843,13 @@ function loadNewProgram(){
 /* Merge: add what this device is missing, never remove or overwrite what it has */
 function mergeFromObject(parsed){
   const added={w:0,g:0,s:0};
+  if(parsed&&(isLegacyProgram(parsed.program)||Object.keys(parsed.workoutLog||{}).some(k=>legacyKey(k)!==k))){
+    parsed=Object.assign({},parsed);
+    let keymap=null;
+    if(isLegacyProgram(parsed.program)){const c=convertLegacyProgram(parsed.program);parsed.program=c.program;keymap=c.keymap;}
+    const r=convertLegacyLog(parsed.workoutLog||{},parsed.logMeta||{},keymap);
+    parsed.workoutLog=r.log;parsed.logMeta=r.meta;
+  }
   let changed=false;
   const setHas=s=>!!(s&&(s.done||s.skipped||(s.w!==''&&s.w!=null)||(s.r!==''&&s.r!=null)));
   /* deletion tombstones: an id deleted on any device stays deleted everywhere */
