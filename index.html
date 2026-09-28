@@ -510,6 +510,7 @@ input[type="date"].finput{-webkit-appearance:none;appearance:none;display:block;
   </div>
 </div>
 <p class="footnote" id="footnote">Data saves automatically and syncs across your devices.<br>Tip: download a backup from the Data tab every few weeks.</p>
+<p class="footnote" id="appver" style="margin-top:6px"></p>
 <script>
 /* ---------- helpers ---------- */
 function ex(n,t){return{n,t};}
@@ -519,6 +520,21 @@ function hexA(hex,a){
   if(!m)return hex;
   const n=parseInt(m[1],16);
   return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+}
+const APP_VERSION='v9 · Sep 28, 2026';
+/* the phone can hold on to an old copy of this page for a while; check the live site and offer a reload */
+let updateSeen=false;
+function checkForUpdate(){
+  if(updateSeen||!navigator.onLine)return;
+  fetch(location.href.split('#')[0],{cache:'no-store'}).then(r=>r.text()).then(t=>{
+    const m=t.match(/APP_VERSION='([^']+)'/);
+    if(m&&m[1]!==APP_VERSION){
+      updateSeen=true;
+      const el=document.getElementById('appver');
+      if(el)el.innerHTML='<b style="color:var(--accent);cursor:pointer" onclick="location.reload()">Update available ('+m[1]+') · tap to reload</b>';
+      toast('New version available · tap the note at the bottom to reload');
+    }
+  }).catch(()=>{});
 }
 const DAYS=["S1","S2","S3","S4","S5","S6"];          /* session slots; a program uses the first N */
 const DAY_LABEL={S1:"Day 1",S2:"Day 2",S3:"Day 3",S4:"Day 4",S5:"Day 5",S6:"Day 6"};
@@ -552,9 +568,9 @@ function convertLegacyLog(log,meta,keymap){
 }
 /* ---------- default program: 8-Week Recomp Block (starts Mon Sep 7, 2026) ---------- */
 const DEFAULT_PROGRAM={
- name:"8-Week Recomp Block",rev:8,
+ name:"8-Week Recomp Block",rev:9,
  weeks:{
-  "1":{label:"Base",phase:"Base",accent:"#5DCAA5",summary:"MEV · RPE 6-7",dates:"Sep 7 – 13",
+  "1":{label:"Base",phase:"Base",accent:"#5DCAA5",summary:"MEV · RPE 6-7",
     ov:{vol:62,rpe:6.5,volL:"MEV",rpeL:"RPE 6–7",
       sub:"Re-entry at minimum effective volume while the new diet settles in. Groove the new split and log baseline numbers everywhere.",
       badges:["MEV volume","RPE 6–7","Log baselines"],
@@ -564,7 +580,7 @@ const DEFAULT_PROGRAM={
     S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
     S3:{t:"lift",title:"Legs — Squat Base",note:"<b>Find your working weight.</b> Ramp: bar, then 3 to 4 sets adding 20–40 lb until 8 reps feels like RPE 7 (3 reps left). That weight is your Week 1 number.",ex:[ex("Back squat","4 × 8"),ex("Walking lunge","3 × 10/leg")]},
     S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
-  "2":{label:"Build",phase:"Base",accent:"#5DCAA5",summary:"MEV+ · RPE 7",dates:"Sep 14 – 20",
+  "2":{label:"Build",phase:"Base",accent:"#5DCAA5",summary:"MEV+ · RPE 7",
     ov:{vol:70,rpe:7,volL:"MEV+",rpeL:"RPE 7",
       sub:"One set added to the lead leg movements.",
       badges:["MEV+ volume","RPE 7","+1 set on leads"],
@@ -574,7 +590,7 @@ const DEFAULT_PROGRAM={
     S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
     S3:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 8, RPE 7.</b> Ramp with the bar, 50% and 70% before the working sets. Add 5–10 lb over last week if every set hit 8 clean reps.",ex:[ex("Back squat","4 × 8"),ex("Walking lunge","3 × 10/leg")]},
     S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
-  "3":{label:"Accumulate",phase:"Accumulation",accent:"#7F77DD",summary:"MAV · FST-7 begins · RPE 7-8",dates:"Sep 21 – 27",
+  "3":{label:"Accumulate",phase:"Accumulation",accent:"#7F77DD",summary:"MAV · FST-7 begins · RPE 7-8",
     ov:{vol:87,rpe:7.5,volL:"MAV",rpeL:"RPE 7–8",
       sub:"Full accumulation begins: FST-7 finishers arrive on the leg days. Arm days keep their superset and straight-set structure; rep ranges open up on legs.",
       badges:["MAV volume","RPE 7–8","Full FST-7 begins"],
@@ -584,7 +600,7 @@ const DEFAULT_PROGRAM={
     S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
     S3:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 6, RPE 7–8.</b> Add 5–10 lb from Week 2. Ramp first; log the ramp as warm-up sets (tap the set number).",ex:[ex("Back squat","4 × 6"),ex("Walking lunge","3 × 10/leg")]},
     S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
-  "4":{label:"Push",phase:"Accumulation",accent:"#7F77DD",summary:"+Load · RPE 8",dates:"Sep 28 – Oct 4",
+  "4":{label:"Push",phase:"Accumulation",accent:"#7F77DD",summary:"+Load · RPE 8",
     ov:{vol:92,rpe:8,volL:"MAV",rpeL:"RPE 8",
       sub:"Same set structure as Week 3 with load bumps on the primary compounds.",
       badges:["MAV volume","RPE 8","+Load on compounds"],
@@ -594,7 +610,7 @@ const DEFAULT_PROGRAM={
     S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
     S3:{t:"lift",title:"Legs — Squat Build",note:"<b>5 × 5, RPE 8.</b> Same weight all five sets. Rest 3 min between squat sets.",ex:[ex("Back squat","5 × 5"),ex("Walking lunge","3 × 12/leg")]},
     S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
-  "5":{label:"Climb",phase:"Accumulation",accent:"#7F77DD",summary:"MAV+ · RPE 8",dates:"Oct 5 – 11",
+  "5":{label:"Climb",phase:"Accumulation",accent:"#7F77DD",summary:"MAV+ · RPE 8",
     ov:{vol:97,rpe:8,volL:"MAV+",rpeL:"RPE 8",
       sub:"Volume climbs toward peak: fifth set on hack squat, squat drops to sets of 4 and climbs in load. Arm days hold their set counts; progress by load and reps.",
       badges:["MAV+ volume","RPE 8","Checkpoint week"],
@@ -604,7 +620,7 @@ const DEFAULT_PROGRAM={
     S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
     S3:{t:"lift",title:"Legs — Squat Build",note:"<b>Sets of 4, RPE 8.</b> Add 5–10 lb from Week 4. Brace hard, control the descent, drive up fast.",ex:[ex("Back squat","4 × 4"),ex("Walking lunge","3 × 12/leg")]},
     S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
-  "6":{label:"Peak",phase:"Peak volume",accent:"#EF9F27",summary:"MRV · RPE 8-9",dates:"Oct 12 – 18",
+  "6":{label:"Peak",phase:"Peak volume",accent:"#EF9F27",summary:"MRV · RPE 8-9",
     ov:{vol:100,rpe:8.5,volL:"MRV",rpeL:"RPE 8–9",
       sub:"Peak volume of the block. Four sessions, nothing extra.",
       badges:["MRV volume","RPE 8–9","Hardest week"],
@@ -614,7 +630,7 @@ const DEFAULT_PROGRAM={
     S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
     S3:{t:"lift",title:"Legs — Squat Heavy",note:"<b>Triples, RPE 8–9.</b> Build to a top set of 3 with about 1 rep left, then two more triples at the same weight. Rest 3–4 min.",ex:[ex("Back squat","3 × 3"),ex("Walking lunge","3 × 10/leg")]},
     S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
-  "7":{label:"Intensify",phase:"Intensification",accent:"#EF9F27",summary:"-20% vol · +Load · RPE 8-9",dates:"Oct 19 – 25",
+  "7":{label:"Intensify",phase:"Intensification",accent:"#EF9F27",summary:"-20% vol · +Load · RPE 8-9",
     ov:{vol:64,rpe:8.5,volL:"−20% vol",rpeL:"RPE 8–9",
       sub:"Intensification: FST-7 comes off, volume drops about 20%, loads go up. Chase heavy top sets.",
       badges:["−20% volume","+Load","Heavy top sets"],
@@ -624,7 +640,7 @@ const DEFAULT_PROGRAM={
     S2:{t:"lift",title:"Chest + Triceps",note:"<b>Straight sets.</b> Rest 2 min after chest press, 90 s everywhere else. Warm up 5–8 min with ramping sets on chest press. Keep 1–2 reps in reserve; add weight once every set hits the top of its range.",ex:[ex("Machine chest press","4 × 8-12"),ex("Pec fly machine","3 × 12-15"),ex("Overhead cable rope triceps extension","2 × 10-15"),ex("Cable rope triceps pushdown","2 × 12-15"),ex("Machine triceps kickback","2 × 12-15")]},
     S3:{t:"lift",title:"Legs — Squat Heavy",note:"<b>Doubles.</b> Build to a heavy double at RPE 8 (roughly 90% of what you expect to max), then two back-off doubles 5% lighter. Lunges light.",ex:[ex("Back squat","3 × 2"),ex("Walking lunge","2 × 10/leg")]},
     S4:{t:"lift",title:"Arms Supersets",note:"<b>Supersets:</b> do A, then B, then rest. 90–120 s after pairs 1 and 3, 2 min after pair 2. Warm up 5–8 min with easy sets of pair 1 and light prep sets before JM press. Keep 1–2 reps in reserve.",ex:[ex("1A · Cable rope triceps pushdown","3 × 10-15"),ex("1B · Standing EZ-bar cable curl","3 × 10-15"),ex("2A · Smith machine JM press","3 × 8-12"),ex("2B · EZ-bar preacher curl (narrow, palms up)","3 × 8-12"),ex("3A · Overhead cable rope triceps extension","3 × 10-15"),ex("3B · Standing dumbbell hammer curl","3 × 10-12")]}}},
-  "8":{label:"Test",phase:"Deload + squat max",accent:"#9396a0",summary:"-50% · Squat max Fri",dates:"Oct 26 – Nov 1",
+  "8":{label:"Test",phase:"Deload + squat max",accent:"#9396a0",summary:"-50% · Squat max Day 3",
     ov:{vol:31,rpe:5.5,volL:"−50%",rpeL:"RPE 5–6",
       sub:"Taper week. Half the sets in the other three sessions so you arrive at Day 3 fresh to test the back squat.",
       badges:["−50% volume","Squat max Friday","No FST-7"],
@@ -898,6 +914,7 @@ async function saveAndSync(btn){
 }
 /* when the app comes back to the foreground, quietly pull anything newer */
 document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')setTimeout(checkForUpdate,800);
   if(document.visibilityState!=='visible'||!cloudReady()||syncDirty||syncBusy)return;
   cloudGet().then(remote=>{
     cloudOn=true;syncInfo.pull=Date.now();
@@ -1044,6 +1061,8 @@ function reconcileProgram(stored){
   document.getElementById('brandsub').textContent=activeProgram.name;
   evalBroken();
   renderTrain(); renderBody(); renderData();
+  const av=document.getElementById('appver');if(av)av.textContent='REBUILD '+APP_VERSION;
+  setTimeout(checkForUpdate,1500);
   if(pendingRemote){const r=pendingRemote;pendingRemote=null;const a=mergeFromObject(remoteAsBackup(r));if(a.changed)writeLocal();}
   if(cloudReady()&&localHasData())queueSync();
 })();
@@ -1065,16 +1084,12 @@ function stampLog(){
     if(sig===undefined)delete logSig[k];else logSig[k]=sig;
   });
 }
-const BLOCK_START='2026-09-07'; /* Week 1 Monday */
-function weekMonday(w){const ws=weeksList();const i=ws.indexOf(w);return shiftDate(BLOCK_START,(i>=0?i:(w-1))*7);}
+/* no calendar: the active week is the first one that still has a session without any work logged */
 function currentCalendarWeek(){
-  const start=new Date(BLOCK_START+'T00:00:00');
-  const wkNum=Math.floor((new Date()-start)/(7*24*3600*1000))+1;
   const ws=weeksList();
   if(!ws.length)return 1;
-  if(wkNum<ws[0])return ws[0];
-  if(wkNum>ws[ws.length-1])return ws[ws.length-1];
-  return wkNum;
+  for(const w of ws){if(trainDaysOf(w).some(d=>!dayHasWork(w,d)))return w;}
+  return ws[ws.length-1];
 }
 let curTheme='dark';
 function applyTheme(t){
@@ -1225,8 +1240,7 @@ function renderTrain(){
   });
   const pb=document.getElementById('phasebanner');
   pb.style.borderLeftColor=phaseC(curWeek);
-  const Wd=(wk(curWeek)&&wk(curWeek).dates)||'';
-  pb.innerHTML=`<span class="pt">Week ${curWeek} · ${metaL(curWeek)}${Wd?`<span class="pdate">${Wd} · any order</span>`:''}</span><span class="pd">${phaseN(curWeek)}<br>${metaS(curWeek)}</span>`;
+  pb.innerHTML=`<span class="pt">Week ${curWeek} · ${metaL(curWeek)}<span class="pdate">${trainDaysOf(curWeek).length} sessions · any order</span></span><span class="pd">${phaseN(curWeek)}<br>${metaS(curWeek)}</span>`;
   const td=trainDaysOf(curWeek);
   let totalDone=0; td.forEach(d=>{if(dayComplete(curWeek,d))totalDone++;});
   document.getElementById('wkproglbl').textContent=totalDone+'/'+td.length+' sessions';
@@ -1252,9 +1266,9 @@ function renderTrain(){
     const hasWork=dayHasWork(curWeek,d);
     const isNext=!hasWork&&!nextFound;
     if(isNext){nextFound=true;card.className='day today';}
-    const stamp=(mem['log-meta']||{})[key];
     let when='';
-    if(hasWork&&stamp)when=(isDone?'Done ':'Logged ')+fmtDate(new Date(stamp).toISOString().slice(0,10)).dd;
+    if(isDone)when='Done';
+    else if(hasWork)when='In progress';
     else if(isNext&&curWeek===currentCalendarWeek())when='Up next';
     card.innerHTML=`
       <div class="day-head">
